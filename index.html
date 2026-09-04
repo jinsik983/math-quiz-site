@@ -388,6 +388,7 @@ select#scopeSelect{
   <div class="subject-tabs">
     <button class="subject-tab selected" id="subjectMathTab">🔢 수학</button>
     <button class="subject-tab" id="subjectKoreanTab">📖 국어</button>
+    <button class="subject-tab" id="subjectEnglishTab">🔤 영어</button>
   </div>
 
   <div class="mode-tabs">
@@ -522,6 +523,38 @@ select#scopeSelect{
     </div>
   </div>
   <!-- ============ /국어 섹션 ============ -->
+
+  <!-- ============ 영어 섹션 ============ -->
+  <div id="englishSection" class="hidden">
+    <div id="enSettingsScreen">
+      <div class="panel">
+        <h2><span class="idx">1</span> 학년을 골라주세요</h2>
+        <div class="grade-row" id="enGradeRow"></div>
+      </div>
+      <div class="panel">
+        <h2><span class="idx">2</span> 문제 유형을 골라주세요</h2>
+        <select id="enScopeSelect"></select>
+      </div>
+      <button class="generate-btn" id="enGenerateBtn">문제지 만들기 →</button>
+      <button class="history-link" id="enHistoryToggle">📋 지난 기록 보기</button>
+      <div class="panel history-panel hidden" id="enHistoryPanel">
+        <h2><span class="idx">★</span> 지난 기록</h2>
+        <div id="enHistoryContent"></div>
+      </div>
+    </div>
+
+    <div id="enWorksheetScreen" class="hidden">
+      <div class="summary-bar">
+        <div class="tags" id="enSummaryTags"></div>
+        <div class="actions">
+          <button class="ghost-btn" id="enRegenBtn">🔄 새 문제</button>
+          <button class="ghost-btn" id="enBackBtn">⚙ 설정으로</button>
+        </div>
+      </div>
+      <div class="problem-grid" id="enProblemGrid"></div>
+    </div>
+  </div>
+  <!-- ============ /영어 섹션 ============ -->
 </div>
 
 <div class="footer-bar hidden" id="footerBar">
@@ -1077,6 +1110,141 @@ reading:{label:'짧은 독해 지문', items:{
 };
 const KOREAN_CATEGORY_ORDER=['spelling','vocab','idiom','grammar','reading'];
 
+const ENGLISH_BANK = {
+phonics:{label:'파닉스/알파벳', items:{
+ 3:[
+  {q:"Which letter comes after 'B'?", options:["C","D","A","E"], correct:0, explain:"알파벳 순서는 A, B, C, D... 이므로 B 다음은 C예요."},
+  {q:"Which word starts with the same sound as 'Cat'?", options:["Car","Dog","Sun","Egg"], correct:0, explain:"'Cat'과 'Car'는 모두 /k/ 소리로 시작해요."},
+  {q:"How many letters are there in the English alphabet?", options:["26","24","28","30"], correct:0, explain:"영어 알파벳은 모두 26개예요."},
+  {q:"Which one is a vowel?", options:["A","B","C","D"], correct:0, explain:"영어의 모음은 A, E, I, O, U예요."}
+ ],
+ 4:[
+  {q:"Which word has the same ending sound as 'cake'?", options:["lake","cat","dog","sun"], correct:0, explain:"'cake'와 'lake'는 모두 '-ake'로 끝나는 소리예요."},
+  {q:"Which word rhymes with 'hat'?", options:["cat","dog","sun","cup"], correct:0, explain:"'hat'과 'cat'은 '-at'로 끝나는 소리가 같아요."},
+  {q:"Which letter is silent in the word 'know'?", options:["k","n","o","w"], correct:0, explain:"'know'에서 'k'는 소리가 나지 않는 묵음이에요."},
+  {q:"Which word starts with a short 'a' sound?", options:["apple","ice","umbrella","egg"], correct:0, explain:"'apple'은 짧은 'a' 소리로 시작해요."}
+ ],
+ 5:[
+  {q:"Which word has a long 'o' sound?", options:["boat","dog","top","box"], correct:0, explain:"'boat'의 'oa'는 장모음 /oʊ/ 소리를 내요."},
+  {q:"Which pair of words rhymes?", options:["night / light","cat / dog","book / pen","sun / moon"], correct:0, explain:"'night'와 'light'는 '-ight'로 끝나는 소리가 같아요."},
+  {q:"Which word has a silent letter?", options:["listen","music","paper","table"], correct:0, explain:"'listen'에서 't'는 소리가 나지 않아요."},
+  {q:"Which word starts with the 'sh' sound?", options:["ship","stop","skip","step"], correct:0, explain:"'ship'은 'sh' 소리로 시작해요."}
+ ],
+ 6:[
+  {q:"Which word has a different vowel sound from the others?", options:["put","cup","sun","fun"], correct:0, explain:"'put'은 짧은 'u' 소리가 아니라 다른 발음이에요."},
+  {q:"Which two letters together make the 'ch' sound in 'chair'?", options:["ch","sh","th","ph"], correct:0, explain:"'chair'의 'ch'가 /ch/ 소리를 내요."},
+  {q:"Which word ends with a silent 'e'?", options:["cake","cat","cup","cap"], correct:0, explain:"'cake'의 끝 'e'는 소리가 나지 않지만 앞 모음을 길게 만들어요."},
+  {q:"Which word has the same beginning sound as 'phone'?", options:["fish","pig","tone","home"], correct:0, explain:"'phone'의 'ph'는 /f/ 소리가 나요."}
+ ]
+}},
+vocab:{label:'단어/어휘', items:{
+ 3:[
+  {q:"What does 'apple' mean?", options:["사과","바나나","포도","딸기"], correct:0, explain:"'apple'은 '사과'라는 뜻이에요."},
+  {q:"What does 'dog' mean?", options:["개","고양이","새","물고기"], correct:0, explain:"'dog'은 '개'라는 뜻이에요."},
+  {q:"What does 'book' mean?", options:["책","연필","가방","의자"], correct:0, explain:"'book'은 '책'이라는 뜻이에요."},
+  {q:"What does 'water' mean?", options:["물","우유","주스","차"], correct:0, explain:"'water'는 '물'이라는 뜻이에요."}
+ ],
+ 4:[
+  {q:"What does 'family' mean?", options:["가족","친구","선생님","이웃"], correct:0, explain:"'family'는 '가족'이라는 뜻이에요."},
+  {q:"What does 'weather' mean?", options:["날씨","계절","시간","요일"], correct:0, explain:"'weather'는 '날씨'라는 뜻이에요."},
+  {q:"What is the opposite of 'big'?", options:["small","tall","long","short"], correct:0, explain:"'big'(큰)의 반대말은 'small'(작은)이에요."},
+  {q:"What is the opposite of 'happy'?", options:["sad","glad","fun","kind"], correct:0, explain:"'happy'(기쁜)의 반대말은 'sad'(슬픈)예요."}
+ ],
+ 5:[
+  {q:"What does 'library' mean?", options:["도서관","병원","시장","공원"], correct:0, explain:"'library'는 '도서관'이라는 뜻이에요."},
+  {q:"What is the opposite of 'difficult'?", options:["easy","hard","fast","slow"], correct:0, explain:"'difficult'(어려운)의 반대말은 'easy'(쉬운)예요."},
+  {q:"What does 'borrow' mean?", options:["빌리다","사다","팔다","주다"], correct:0, explain:"'borrow'는 '빌리다'라는 뜻이에요."},
+  {q:"What does 'delicious' mean?", options:["맛있는","무서운","지루한","피곤한"], correct:0, explain:"'delicious'는 '맛있는'이라는 뜻이에요."}
+ ],
+ 6:[
+  {q:"What does 'environment' mean?", options:["환경","경제","정치","문화"], correct:0, explain:"'environment'는 '환경'이라는 뜻이에요."},
+  {q:"What is the opposite of 'increase'?", options:["decrease","raise","grow","add"], correct:0, explain:"'increase'(증가하다)의 반대말은 'decrease'(감소하다)예요."},
+  {q:"What does 'invention' mean?", options:["발명","실험","여행","운동"], correct:0, explain:"'invention'은 '발명'이라는 뜻이에요."},
+  {q:"What does 'responsible' mean?", options:["책임감 있는","게으른","용감한","친절한"], correct:0, explain:"'responsible'은 '책임감 있는'이라는 뜻이에요."}
+ ]
+}},
+grammar:{label:'기본 문법', items:{
+ 3:[
+  {q:"Choose the correct word: I ___ a student.", options:["am","is","are","be"], correct:0, explain:"주어가 'I'일 때는 be동사 'am'을 써요."},
+  {q:"Choose the correct word: She ___ happy.", options:["is","am","are","be"], correct:0, explain:"주어가 'She'(3인칭 단수)일 때는 'is'를 써요."},
+  {q:"Choose the correct word: They ___ students.", options:["are","is","am","be"], correct:0, explain:"주어가 'They'(복수)일 때는 'are'를 써요."},
+  {q:"Choose the correct plural form of 'book'.", options:["books","bookes","bookies","book"], correct:0, explain:"대부분의 명사는 뒤에 -s를 붙여서 복수형을 만들어요."}
+ ],
+ 4:[
+  {q:"Choose the correct word: He ___ to school every day.", options:["goes","go","going","went"], correct:0, explain:"주어가 3인칭 단수(He)이고 현재의 습관을 말할 때는 동사에 -s를 붙여요."},
+  {q:"Choose the correct word: ___ you like pizza?", options:["Do","Does","Are","Is"], correct:0, explain:"주어가 'you'일 때 현재형 의문문은 'Do'로 시작해요."},
+  {q:"Choose the correct word: This is ___ book.", options:["my","I","me","mine"], correct:0, explain:"명사 앞에는 소유격 'my'를 써요."},
+  {q:"Choose the correct word: There ___ two cats on the sofa.", options:["are","is","am","be"], correct:0, explain:"주어가 복수(two cats)이므로 'are'를 써요."}
+ ],
+ 5:[
+  {q:"Choose the correct word: I ___ watching TV now.", options:["am","is","are","do"], correct:0, explain:"지금 진행 중인 일을 말할 때는 'be동사 + -ing' 형태를 써요."},
+  {q:"Choose the correct word: She ___ her homework yesterday.", options:["did","do","does","doing"], correct:0, explain:"어제(yesterday) 있었던 일이므로 과거형 'did'를 써요."},
+  {q:"Choose the correct word: There are ___ apples in the box.", options:["some","a","an","much"], correct:0, explain:"셀 수 있는 명사의 복수형 앞에는 'some'을 쓸 수 있어요."},
+  {q:"Choose the correct word: My sister is ___ than me.", options:["taller","tall","tallest","more tall"], correct:0, explain:"둘을 비교할 때는 비교급 '-er'을 붙여요."}
+ ],
+ 6:[
+  {q:"Choose the correct word: If it ___ tomorrow, we will stay home.", options:["rains","rain","rained","raining"], correct:0, explain:"조건문(If절)에서는 현재형 동사를 써요."},
+  {q:"Choose the correct word: This book is ___ than that one.", options:["more interesting","interestinger","most interesting","interesting"], correct:0, explain:"긴 단어의 비교급은 앞에 'more'를 붙여요."},
+  {q:"Choose the correct word: She has ___ finished her homework.", options:["already","yet","ever","still"], correct:0, explain:"완료된 일을 나타낼 때 긍정문에서는 'already'를 써요."},
+  {q:"Choose the correct word: I have never ___ to Japan.", options:["been","go","goes","went"], correct:0, explain:"현재완료 'have + p.p.' 형태로 'been'을 써요."}
+ ]
+}},
+conversation:{label:'일상 회화 표현', items:{
+ 3:[
+  {q:"A: Hello! How are you? B: ___", options:["I'm fine, thank you.","Goodbye.","My name is Tom.","See you."], correct:0, explain:"안부를 물으면 'I'm fine, thank you.'처럼 답해요."},
+  {q:"A: What's your name? B: ___", options:["My name is Jimin.","I'm fine.","Thank you.","Yes, I am."], correct:0, explain:"이름을 물으면 'My name is ~.'로 답해요."},
+  {q:"A: Thank you! B: ___", options:["You're welcome.","Nice to meet you.","Good morning.","I'm sorry."], correct:0, explain:"고맙다는 말에는 'You're welcome.'으로 답해요."},
+  {q:"A: Nice to meet you. B: ___", options:["Nice to meet you, too.","Good night.","How much is it?","Excuse me."], correct:0, explain:"처음 만나 인사할 때는 'Nice to meet you, too.'라고 답해요."}
+ ],
+ 4:[
+  {q:"A: What time is it? B: ___", options:["It's three o'clock.","I'm nine years old.","It's sunny.","I like it."], correct:0, explain:"시간을 물으면 'It's ~ o'clock.'으로 답해요."},
+  {q:"A: How old are you? B: ___", options:["I'm ten years old.","It's Monday.","I'm fine.","It's raining."], correct:0, explain:"나이를 물으면 'I'm ~ years old.'로 답해요."},
+  {q:"A: Can I help you? B: ___", options:["Yes, please.","See you later.","Good morning.","I'm sorry."], correct:0, explain:"도움을 제안하면 'Yes, please.'로 답할 수 있어요."},
+  {q:"A: Where is the bathroom? B: ___", options:["It's over there.","I'm happy.","Nice to meet you.","It's Monday."], correct:0, explain:"장소를 물으면 'It's over there.'처럼 위치로 답해요."}
+ ],
+ 5:[
+  {q:"A: What's wrong? B: ___", options:["I have a headache.","I'm ten years old.","It's Monday.","Nice to meet you."], correct:0, explain:"상태를 물으면 아픈 곳 등을 말해요."},
+  {q:"A: Would you like some more? B: ___", options:["No, thank you. I'm full.","It's sunny.","I'm ten.","See you."], correct:0, explain:"권유에는 수락하거나 정중히 거절해요."},
+  {q:"A: How was your weekend? B: ___", options:["It was great!","It's three o'clock.","I'm from Korea.","This is my book."], correct:0, explain:"주말이 어땠는지 물으면 느낌을 말해요."},
+  {q:"A: Excuse me, where is the station? B: ___", options:["Go straight and turn left.","I'm fine, thanks.","It's my birthday.","I like trains."], correct:0, explain:"길을 물으면 방향을 알려줘요."}
+ ],
+ 6:[
+  {q:"A: I failed my test. B: ___", options:["I'm sorry to hear that.","Congratulations!","Happy birthday!","Well done!"], correct:0, explain:"안 좋은 소식에는 위로의 말을 해요."},
+  {q:"A: Could you help me with this? B: ___", options:["Sure, no problem.","It's raining.","I'm ten.","Good night."], correct:0, explain:"부탁에는 수락하는 말로 답할 수 있어요."},
+  {q:"A: What do you think about this movie? B: ___", options:["I think it's amazing.","It's Monday.","I'm from Korea.","See you soon."], correct:0, explain:"의견을 물으면 생각을 말해요."},
+  {q:"A: I'm sorry I'm late. B: ___", options:["That's okay.","You're welcome.","Nice to meet you.","Good luck."], correct:0, explain:"사과에는 'That's okay.'처럼 괜찮다고 답해요."}
+ ]
+}},
+reading:{label:'짧은 독해 지문', items:{
+ 3:[
+  {passage:"I have a dog. My dog is white. My dog likes to run.", q:"이 글에서 강아지의 색깔은 무엇인가요?", options:["White","Black","Brown","Gray"], correct:0, explain:"글에서 'My dog is white'라고 했어요."},
+  {passage:"This is my school. My school is big. I have many friends at school.", q:"이 글에서 학교에 대한 설명으로 맞는 것은?", options:["It is big.","It is small.","It is new.","It is old."], correct:0, explain:"글에서 'My school is big'이라고 했어요."},
+  {passage:"I like apples. I like bananas, too. I eat fruit every day.", q:"이 글쓴이는 무엇을 매일 먹나요?", options:["Fruit","Vegetables","Bread","Meat"], correct:0, explain:"글에서 매일 과일(fruit)을 먹는다고 했어요."},
+  {passage:"Today is Monday. It is sunny. I am happy.", q:"오늘 날씨는 어떤가요?", options:["Sunny","Rainy","Snowy","Cloudy"], correct:0, explain:"글에서 'It is sunny'라고 했어요."}
+ ],
+ 4:[
+  {passage:"My name is Suji. I am ten years old. I live in Seoul with my family.", q:"수지는 몇 살인가요?", options:["10","9","11","12"], correct:0, explain:"글에서 'I am ten years old'라고 했어요."},
+  {passage:"On Saturdays, I play soccer with my friends. After that, we eat pizza together.", q:"토요일에 이 글쓴이가 하는 일이 아닌 것은?", options:["Swimming","Playing soccer","Eating pizza","Meeting friends"], correct:0, explain:"글에 수영에 대한 내용은 없어요."},
+  {passage:"Winter is my favorite season. I like to make snowmen. I also like to drink hot chocolate.", q:"이 글쓴이가 가장 좋아하는 계절은?", options:["Winter","Summer","Spring","Fall"], correct:0, explain:"글에서 'Winter is my favorite season'이라고 했어요."},
+  {passage:"My brother is tall and strong. He plays basketball every weekend.", q:"글쓴이의 형(오빠)은 주말마다 무엇을 하나요?", options:["Plays basketball","Plays soccer","Reads books","Watches TV"], correct:0, explain:"글에서 주말마다 농구를 한다고 했어요."}
+ ],
+ 5:[
+  {passage:"Last summer, I went to the beach with my family. We swam in the sea and built sandcastles. It was a lot of fun.", q:"이 글쓴이는 지난 여름에 어디에 갔나요?", options:["The beach","The mountain","The zoo","The museum"], correct:0, explain:"글에서 'I went to the beach'라고 했어요."},
+  {passage:"Tom wants to be a scientist. He loves doing experiments and reading science books.", q:"톰의 장래희망은 무엇인가요?", options:["Scientist","Teacher","Doctor","Singer"], correct:0, explain:"글에서 'Tom wants to be a scientist'라고 했어요."},
+  {passage:"Recycling helps protect the environment. We should separate plastic, paper, and cans.", q:"이 글의 주제로 알맞은 것은?", options:["The importance of recycling","How to make paper","Types of animals","Cooking recipes"], correct:0, explain:"글 전체가 재활용의 중요성에 대해 말하고 있어요."},
+  {passage:"My grandmother makes the best cookies. She bakes them every Sunday and shares them with our neighbors.", q:"할머니는 언제 쿠키를 굽나요?", options:["Every Sunday","Every Monday","Every day","Once a year"], correct:0, explain:"글에서 'every Sunday'라고 했어요."}
+ ],
+ 6:[
+  {passage:"Robots are becoming more common in our daily lives. Some robots help clean houses, while others help doctors in hospitals.", q:"이 글에서 로봇이 하는 일로 언급되지 않은 것은?", options:["Cooking food","Cleaning houses","Helping doctors","Working in hospitals"], correct:0, explain:"글에 요리에 대한 내용은 없어요."},
+  {passage:"The Amazon rainforest produces a large amount of the world's oxygen. It is home to millions of species of plants and animals.", q:"아마존 열대우림에 대한 설명으로 알맞은 것은?", options:["It produces a lot of oxygen.","It has no animals.","It is very small.","It is located in Africa."], correct:0, explain:"글에서 산소를 많이 만들어낸다고 했어요."},
+  {passage:"Many students use smartphones to study. However, spending too much time on phones can make it hard to focus.", q:"이 글의 중심 내용은?", options:["Smartphones can help and also distract students.","Smartphones are always bad.","Students should never use phones.","Phones are too expensive."], correct:0, explain:"스마트폰의 도움과 방해 요소를 함께 다루고 있어요."},
+  {passage:"Exercise is important for both the body and the mind. Regular exercise can reduce stress and improve sleep.", q:"규칙적인 운동의 효과로 언급된 것은?", options:["Reducing stress and improving sleep","Making you taller","Improving eyesight","Making you smarter instantly"], correct:0, explain:"글에서 스트레스 감소와 수면 개선을 언급했어요."}
+ ]
+}}
+};
+const ENGLISH_CATEGORY_ORDER = ['phonics','vocab','grammar','conversation','reading'];
+
+
 const GRADE_COLORS={1:'var(--g1)',2:'var(--g2)',3:'var(--g3)',4:'var(--g4)',5:'var(--g5)',6:'var(--g6)'};
 
 /* ========================= 상태 ========================= */
@@ -1094,6 +1262,10 @@ let examSubmitted=false;
 let koState={grade:4, category:'all'};
 let koProblems=[];
 let koAttemptSaved=false;
+
+let enState={grade:3, category:'all'};
+let enProblems=[];
+let enAttemptSaved=false;
 let currentSubject='math';
 
 /* ========================= 기록 저장/불러오기 ========================= */
@@ -1127,10 +1299,12 @@ function renderHistory(targetId){
   const items=list.map(r=>{
     const isExam = r.mode==='exam';
     const isKorean = r.subject==='korean';
+    const isEnglish = r.subject==='english';
     const scopeLabel = r.scope==='all' ? '전체범위' : r.scopeLabel;
     let midTag;
-    if(isExam) midTag='<span class="h-tag">🏆 '+(r.subject==='korean'?'국어':'수학')+' 모의고사</span>';
+    if(isExam) midTag='<span class="h-tag">🏆 '+(r.subject==='korean'?'국어':r.subject==='english'?'영어':'수학')+' 모의고사</span>';
     else if(isKorean) midTag='<span class="h-tag">📖 국어</span>';
+    else if(isEnglish) midTag='<span class="h-tag">🔤 영어</span>';
     else midTag='<span class="h-tag">'+diffLabel(r.diff)+'</span>';
     return '<li class="history-item">'+
       '<div class="h-tags">'+
@@ -1265,6 +1439,36 @@ function populateKoScopeSelect(){
   sel.onchange=()=>{ koState.category=sel.value; };
 }
 
+function initEnGradeRow(){
+  const row=document.getElementById('enGradeRow');
+  row.innerHTML='';
+  for(let g=3; g<=6; g++){
+    const btn=document.createElement('button');
+    btn.className='grade-btn'+(g===enState.grade?' selected':'');
+    btn.dataset.g=g;
+    btn.innerHTML='<span class="tip"></span>'+g+'학년';
+    btn.addEventListener('click', ()=>{
+      enState.grade=g;
+      document.querySelectorAll('#enGradeRow .grade-btn').forEach(b=>b.classList.toggle('selected', Number(b.dataset.g)===g));
+    });
+    row.appendChild(btn);
+  }
+}
+function populateEnScopeSelect(){
+  const sel=document.getElementById('enScopeSelect');
+  sel.innerHTML='';
+  const allOpt=document.createElement('option');
+  allOpt.value='all'; allOpt.textContent='전체 유형 (골고루 출제)';
+  sel.appendChild(allOpt);
+  ENGLISH_CATEGORY_ORDER.forEach(catId=>{
+    const opt=document.createElement('option');
+    opt.value=catId; opt.textContent=ENGLISH_BANK[catId].label;
+    sel.appendChild(opt);
+  });
+  sel.value=enState.category;
+  sel.onchange=()=>{ enState.category=sel.value; };
+}
+
 function generateProblem(grade,diff,scope,opts){
   const available=TOPICS.filter(t=>t.grades.includes(grade));
   let topic;
@@ -1277,6 +1481,25 @@ function generateProblem(grade,diff,scope,opts){
 function generateKoreanProblem(grade, category){
   const cat = category==='all' ? KOREAN_CATEGORY_ORDER[randInt(0,KOREAN_CATEGORY_ORDER.length-1)] : category;
   const bank = KOREAN_BANK[cat];
+  const items = bank.items[grade] || [];
+  if(items.length===0) return null;
+  const item = items[randInt(0,items.length-1)];
+  return {
+    topic: bank.label,
+    question: item.q,
+    passage: item.passage,
+    answerType: 'choice',
+    options: item.options,
+    correct: item.correct,
+    unit: '',
+    steps: [item.explain]
+  };
+}
+
+/* ========================= 영어 문제 생성 ========================= */
+function generateEnglishProblem(grade, category){
+  const cat = category==='all' ? ENGLISH_CATEGORY_ORDER[randInt(0,ENGLISH_CATEGORY_ORDER.length-1)] : category;
+  const bank = ENGLISH_BANK[cat];
   const items = bank.items[grade] || [];
   if(items.length===0) return null;
   const item = items[randInt(0,items.length-1)];
@@ -1514,25 +1737,93 @@ function koCheckAnswers(){
   }
 }
 
+/* ========================= 영어 연습 화면 ========================= */
+function buildEnglishWorksheet(){
+  enProblems=[];
+  enAttemptSaved=false;
+  for(let i=0;i<10;i++){
+    const p=generateEnglishProblem(enState.grade, enState.category);
+    if(p) enProblems.push(p);
+  }
+  renderEnglishWorksheet();
+}
+
+function renderEnglishWorksheet(){
+  document.getElementById('enSettingsScreen').classList.add('hidden');
+  document.getElementById('enWorksheetScreen').classList.remove('hidden');
+  document.getElementById('footerBar').classList.remove('hidden');
+  document.getElementById('scoreLabel').textContent='아직 채점 전이에요';
+
+  const catLabel = enState.category==='all' ? '전체 유형' : ENGLISH_BANK[enState.category].label;
+  document.getElementById('enSummaryTags').innerHTML =
+    '<span class="tag">'+enState.grade+'학년</span>'+
+    '<span class="tag">영어</span>'+
+    '<span class="tag">'+catLabel+'</span>';
+
+  const grid=document.getElementById('enProblemGrid');
+  grid.innerHTML='';
+  enProblems.forEach((p,i)=>{
+    grid.appendChild(createProblemCardElement(p,i));
+  });
+}
+
+function enCheckAnswers(){
+  let correctCount=0;
+  const cards=document.querySelectorAll('#enProblemGrid .problem-card');
+  cards.forEach(card=>{
+    const i=Number(card.dataset.index);
+    const p=enProblems[i];
+    const isCorrect=evaluateAnswer(p,card);
+
+    card.classList.add('graded');
+    card.classList.remove('correct','incorrect');
+    card.classList.add(isCorrect?'correct':'incorrect');
+    const stamp=card.querySelector('.stamp');
+    stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
+    card.querySelector('.step-toggle').classList.remove('hidden');
+    if(isCorrect) correctCount++;
+  });
+  updateScoreLabel(correctCount);
+
+  if(!enAttemptSaved){
+    const scopeLabel = enState.category==='all' ? '전체범위' : ENGLISH_BANK[enState.category].label;
+    saveHistoryRecord({
+      date: new Date().toISOString(),
+      subject: 'english',
+      grade: enState.grade,
+      scope: enState.category,
+      scopeLabel: scopeLabel,
+      correct: correctCount,
+      total: enProblems.length,
+      mode: 'practice'
+    });
+    enAttemptSaved=true;
+  }
+}
+
 /* ========================= 과목/모드 전환 (공용) ========================= */
 let currentMode='practice';
 
 function updateTopLevelView(){
-  const isKorean = currentSubject==='korean';
+  const subj = currentSubject; // 'math' | 'korean' | 'english'
   const isExam = currentMode==='exam';
 
-  document.getElementById('subjectMathTab').classList.toggle('selected', !isKorean);
-  document.getElementById('subjectKoreanTab').classList.toggle('selected', isKorean);
+  document.getElementById('subjectMathTab').classList.toggle('selected', subj==='math');
+  document.getElementById('subjectKoreanTab').classList.toggle('selected', subj==='korean');
+  document.getElementById('subjectEnglishTab').classList.toggle('selected', subj==='english');
   document.getElementById('tabPractice').classList.toggle('selected', !isExam);
   document.getElementById('tabExam').classList.toggle('selected', isExam);
 
-  document.getElementById('mathSection').classList.toggle('hidden', isKorean || isExam);
-  document.getElementById('koreanSection').classList.toggle('hidden', !isKorean || isExam);
+  document.getElementById('mathSection').classList.toggle('hidden', subj!=='math' || isExam);
+  document.getElementById('koreanSection').classList.toggle('hidden', subj!=='korean' || isExam);
+  document.getElementById('englishSection').classList.toggle('hidden', subj!=='english' || isExam);
 
   document.getElementById('settingsScreen').classList.add('hidden');
   document.getElementById('worksheetScreen').classList.add('hidden');
   document.getElementById('koSettingsScreen').classList.add('hidden');
   document.getElementById('koWorksheetScreen').classList.add('hidden');
+  document.getElementById('enSettingsScreen').classList.add('hidden');
+  document.getElementById('enWorksheetScreen').classList.add('hidden');
   document.getElementById('examSettingsScreen').classList.add('hidden');
   document.getElementById('examRunScreen').classList.add('hidden');
   document.getElementById('examResultScreen').classList.add('hidden');
@@ -1542,15 +1833,36 @@ function updateTopLevelView(){
   if(isExam){
     document.getElementById('examSettingsScreen').classList.remove('hidden');
     updateExamSettingsText();
-  } else if(isKorean){
+  } else if(subj==='korean'){
     document.getElementById('koSettingsScreen').classList.remove('hidden');
+  } else if(subj==='english'){
+    document.getElementById('enSettingsScreen').classList.remove('hidden');
   } else {
     document.getElementById('settingsScreen').classList.remove('hidden');
   }
 
+  const subjName = subj==='korean' ? '국어' : subj==='english' ? '영어' : '수학';
   document.getElementById('headerSub').textContent = isExam
-    ? (isKorean ? '국어 모의고사에 도전해 보세요' : '수학 모의고사에 도전해 보세요')
-    : (isKorean ? '학년과 문제 유형을 골라서 나만의 국어 문제지를 만들어 보세요' : '학년, 난이도, 범위를 골라서 나만의 수학 문제지를 만들어 보세요');
+    ? (subjName+' 모의고사에 도전해 보세요')
+    : (subj==='math' ? '학년, 난이도, 범위를 골라서 나만의 수학 문제지를 만들어 보세요' : '학년과 문제 유형을 골라서 나만의 '+subjName+' 문제지를 만들어 보세요');
+}
+
+function rebuildExamGradeRow(){
+  const minG = currentSubject==='english' ? 3 : 1;
+  if(examState.grade<minG) examState.grade=minG;
+  const row=document.getElementById('examGradeRow');
+  row.innerHTML='';
+  for(let g=minG; g<=6; g++){
+    const btn=document.createElement('button');
+    btn.className='grade-btn'+(g===examState.grade?' selected':'');
+    btn.dataset.g=g;
+    btn.innerHTML='<span class="tip"></span>'+g+'학년';
+    btn.addEventListener('click', ()=>{
+      examState.grade=g;
+      document.querySelectorAll('#examGradeRow .grade-btn').forEach(b=>b.classList.toggle('selected', Number(b.dataset.g)===g));
+    });
+    row.appendChild(btn);
+  }
 }
 
 function updateExamSettingsText(){
@@ -1559,10 +1871,14 @@ function updateExamSettingsText(){
   if(currentSubject==='korean'){
     note.textContent='※ 국어 모의고사는 맞춤법·어휘·속담/사자성어·문법·독해가 골고루 섞여 출제됩니다. 제한 시간이 끝나면 자동으로 제출됩니다.';
     startBtn.textContent='국어 모의고사 시작 →';
+  } else if(currentSubject==='english'){
+    note.textContent='※ 영어 모의고사는 3~6학년 대상이며, 파닉스·어휘·문법·회화·독해가 골고루 섞여 출제됩니다. 제한 시간이 끝나면 자동으로 제출됩니다.';
+    startBtn.textContent='영어 모의고사 시작 →';
   } else {
     note.textContent='※ 모의고사는 기초학력 진단 수준(난이도 하)으로 출제되며, 단답형과 문장제가 섞여 나옵니다. 제한 시간이 끝나면 자동으로 제출됩니다.';
     startBtn.textContent='모의고사 시작 →';
   }
+  rebuildExamGradeRow();
 }
 
 function switchSubject(subject){
@@ -1578,6 +1894,7 @@ function switchMode(mode){
 
 function buildExamProblems(){
   if(currentSubject==='korean') return buildKoreanExamProblems();
+  if(currentSubject==='english') return buildEnglishExamProblems();
   return buildMathExamProblems();
 }
 
@@ -1613,6 +1930,25 @@ function buildKoreanExamProblems(){
   return results;
 }
 
+function buildEnglishExamProblems(){
+  const assignedCats=[];
+  for(let i=0;i<examState.count;i++) assignedCats.push(ENGLISH_CATEGORY_ORDER[i%ENGLISH_CATEGORY_ORDER.length]);
+  for(let i=assignedCats.length-1;i>0;i--){
+    const j=randInt(0,i);
+    const t=assignedCats[i]; assignedCats[i]=assignedCats[j]; assignedCats[j]=t;
+  }
+  const results=[];
+  assignedCats.forEach(cat=>{
+    const p=generateEnglishProblem(examState.grade, cat);
+    if(p) results.push(p);
+  });
+  while(results.length<examState.count){
+    const p=generateEnglishProblem(examState.grade, 'all');
+    if(p) results.push(p); else break;
+  }
+  return results;
+}
+
 function buildExam(){
   examProblems=buildExamProblems();
   examSubmitted=false;
@@ -1629,7 +1965,7 @@ function renderExamRun(){
 
   document.getElementById('examSummaryTags').innerHTML =
     '<span class="tag">'+examState.grade+'학년</span>'+
-    '<span class="tag">'+(currentSubject==='korean'?'국어':'수학')+' 모의고사</span>'+
+    '<span class="tag">'+(currentSubject==='korean'?'국어':currentSubject==='english'?'영어':'수학')+' 모의고사</span>'+
     '<span class="tag">'+examProblems.length+'문항</span>'+
     '<span class="tag">'+examState.minutes+'분</span>';
 
@@ -1748,6 +2084,7 @@ document.getElementById('backBtn').addEventListener('click', ()=>{
 });
 document.getElementById('checkBtn').addEventListener('click', ()=>{
   if(currentSubject==='korean') koCheckAnswers();
+  else if(currentSubject==='english') enCheckAnswers();
   else checkAnswers();
 });
 document.getElementById('wordModeCheck').addEventListener('change', (e)=>{
@@ -1777,6 +2114,7 @@ document.getElementById('examBackFromResultBtn').addEventListener('click', ()=>s
 
 document.getElementById('subjectMathTab').addEventListener('click', ()=>switchSubject('math'));
 document.getElementById('subjectKoreanTab').addEventListener('click', ()=>switchSubject('korean'));
+document.getElementById('subjectEnglishTab').addEventListener('click', ()=>switchSubject('english'));
 document.getElementById('koGenerateBtn').addEventListener('click', buildKoreanWorksheet);
 document.getElementById('koRegenBtn').addEventListener('click', buildKoreanWorksheet);
 document.getElementById('koBackBtn').addEventListener('click', ()=>{
@@ -1791,6 +2129,20 @@ document.getElementById('koHistoryToggle').addEventListener('click', ()=>{
   if(!nowHidden) renderHistory('koHistoryContent');
 });
 
+document.getElementById('enGenerateBtn').addEventListener('click', buildEnglishWorksheet);
+document.getElementById('enRegenBtn').addEventListener('click', buildEnglishWorksheet);
+document.getElementById('enBackBtn').addEventListener('click', ()=>{
+  document.getElementById('enWorksheetScreen').classList.add('hidden');
+  document.getElementById('footerBar').classList.add('hidden');
+  document.getElementById('enSettingsScreen').classList.remove('hidden');
+});
+document.getElementById('enHistoryToggle').addEventListener('click', ()=>{
+  const panel=document.getElementById('enHistoryPanel');
+  const nowHidden=panel.classList.toggle('hidden');
+  document.getElementById('enHistoryToggle').textContent = nowHidden ? '📋 지난 기록 보기' : '📋 지난 기록 숨기기';
+  if(!nowHidden) renderHistory('enHistoryContent');
+});
+
 initGradeRow();
 initDiffRow();
 populateScopeSelect();
@@ -1798,6 +2150,8 @@ initExamGradeRow();
 initExamPillRows();
 initKoGradeRow();
 populateKoScopeSelect();
+initEnGradeRow();
+populateEnScopeSelect();
 updateTopLevelView();
 </script>
 </body>
