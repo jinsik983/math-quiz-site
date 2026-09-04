@@ -1,0 +1,1804 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수학 문제 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Gothic+Coding:wght@400;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBF8EF;
+  --grid-line: rgba(63,111,224,0.10);
+  --ink:#26304A;
+  --ink-soft:#5B6685;
+  --accent:#3F6FE0;
+  --accent-soft:#E7EDFC;
+  --correct:#2E9E4E;
+  --incorrect:#D64545;
+  --card-bg:#FFFFFF;
+  --shadow: 0 2px 0 rgba(38,48,74,0.06), 0 10px 24px rgba(38,48,74,0.06);
+  --g1:#E85D5D; --g2:#F2994A; --g3:#E0B400; --g4:#3FAE6B; --g5:#3F9BE0; --g6:#9B5DE0;
+  --grade-color: var(--accent);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/100% 32px,
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/32px 100%,
+    var(--paper);
+  color:var(--ink);
+  font-family:'Noto Sans KR', sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:920px;margin:0 auto;padding:28px 16px 80px;}
+.app-header{text-align:center;margin-bottom:22px;}
+.app-header h1{
+  font-family:'Gaegu', cursive;
+  font-size:44px;
+  font-weight:700;
+  margin:0 0 4px;
+  color:var(--ink);
+  letter-spacing:-0.5px;
+}
+.app-header h1 .pencil{display:inline-block; transform:rotate(-8deg);}
+.app-header p{
+  margin:0; color:var(--ink-soft); font-size:15px;
+}
+
+.mode-tabs{display:flex; gap:8px; margin-bottom:16px;}
+.mode-tab{
+  flex:1; padding:12px; border-radius:12px; border:2px solid var(--ink);
+  background:#fff; color:var(--ink);
+  font-family:'Gaegu', cursive; font-size:18px; font-weight:700; cursor:pointer;
+}
+.mode-tab.selected{background:var(--ink); color:#fff;}
+
+.subject-tabs{display:flex; gap:8px; margin-bottom:14px;}
+.subject-tab{
+  flex:1; padding:13px; border-radius:14px; border:2px solid var(--accent);
+  background:#fff; color:var(--accent);
+  font-family:'Gaegu', cursive; font-size:19px; font-weight:700; cursor:pointer;
+}
+.subject-tab.selected{background:var(--accent); color:#fff;}
+
+.passage-box{
+  background:#F6F8FD; border-radius:10px; padding:12px 14px; margin-bottom:10px;
+  font-size:14.5px; line-height:1.75; color:var(--ink);
+  border-left:4px solid var(--accent);
+}
+.choice-row{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+.choice-opt{
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px; border-radius:10px; border:2px solid #E4E8F2;
+  font-size:14.5px; cursor:pointer;
+}
+.choice-opt:hover{border-color:var(--accent-soft);}
+.choice-opt input{accent-color:var(--accent); width:16px; height:16px; cursor:pointer;}
+
+.exam-note{font-size:13px; color:var(--ink-soft); margin:0 0 14px; line-height:1.6;}
+
+.exam-timer{
+  font-family:'Nanum Gothic Coding', monospace; font-size:26px; font-weight:700;
+  background:var(--accent-soft); color:var(--accent);
+  padding:8px 20px; border-radius:12px; min-width:110px; text-align:center;
+}
+.footer-bar.exam-time-low .exam-timer{background:#FCE4E4; color:var(--incorrect);}
+
+.result-actions{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:100px;}
+.result-score-big{
+  font-family:'Gaegu', cursive; font-size:36px; font-weight:700; text-align:center; margin:4px 0 6px;
+}
+.result-sub{text-align:center; color:var(--ink-soft); font-size:14px; margin-bottom:4px;}
+.topic-stat-row{
+  display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:14px;
+}
+.topic-stat-row .t-label{width:150px; flex:none; color:var(--ink);}
+.topic-stat-row .t-bar-bg{flex:1; background:#EEF1F8; border-radius:999px; height:10px; overflow:hidden;}
+.topic-stat-row .t-bar-fill{height:100%; background:var(--accent); border-radius:999px;}
+.topic-stat-row .t-frac{width:52px; flex:none; text-align:right; font-family:'Nanum Gothic Coding', monospace; color:var(--ink-soft);}
+.wrong-item{
+  background:#FDF5F4; border-left:4px solid var(--incorrect); border-radius:8px;
+  padding:12px 14px; margin-bottom:10px;
+}
+.wrong-item .wq{font-family:'Nanum Gothic Coding', monospace; font-size:14.5px; margin-bottom:6px;}
+.wrong-item .wa{font-size:13.5px; color:var(--correct); font-weight:700; margin-bottom:6px;}
+.wrong-empty{color:var(--ink-soft); font-size:14px;}
+
+/* ---------- Settings screen ---------- */
+.panel{
+  background:var(--card-bg);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  padding:26px 22px;
+  margin-bottom:18px;
+  border:1px solid rgba(38,48,74,0.06);
+}
+.panel h2{
+  font-family:'Gaegu', cursive;
+  font-size:22px;
+  margin:0 0 14px;
+  display:flex; align-items:center; gap:8px;
+}
+.panel h2 .idx{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:50%;
+  background:var(--accent-soft); color:var(--accent);
+  font-family:'Nanum Gothic Coding', monospace; font-size:14px; font-weight:700;
+}
+
+.grade-row{display:flex; flex-wrap:wrap; gap:10px;}
+.grade-btn{
+  flex:1 1 90px;
+  border:2px solid transparent;
+  border-radius:14px;
+  padding:14px 8px 10px;
+  cursor:pointer;
+  background:var(--sw, #eee);
+  color:#fff;
+  font-family:'Gaegu', cursive;
+  font-size:19px;
+  font-weight:700;
+  text-align:center;
+  position:relative;
+  transition:transform .12s ease, box-shadow .12s ease;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.12);
+}
+.grade-btn:hover{transform:translateY(-2px);}
+.grade-btn .tip{
+  display:block; width:14px; height:14px; margin:0 auto 6px;
+  background:#fff; border-radius:3px; opacity:.85;
+}
+.grade-btn.selected{
+  border-color:var(--ink);
+  box-shadow: 0 3px 0 rgba(0,0,0,0.12), 0 0 0 3px rgba(38,48,74,0.10);
+  transform:translateY(-2px);
+}
+.grade-btn[data-g="1"]{--sw:var(--g1);}
+.grade-btn[data-g="2"]{--sw:var(--g2);}
+.grade-btn[data-g="3"]{--sw:var(--g3);}
+.grade-btn[data-g="4"]{--sw:var(--g4);}
+.grade-btn[data-g="5"]{--sw:var(--g5);}
+.grade-btn[data-g="6"]{--sw:var(--g6);}
+
+.pill-row{display:flex; gap:10px; flex-wrap:wrap;}
+.pill{
+  border:2px solid var(--ink);
+  border-radius:999px;
+  padding:9px 20px;
+  background:transparent;
+  color:var(--ink);
+  font-family:'Gaegu', cursive;
+  font-size:17px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .12s ease;
+}
+.pill small{font-family:'Noto Sans KR',sans-serif; font-weight:400; font-size:12px; opacity:.7;}
+.pill.selected{background:var(--ink); color:#fff;}
+
+select#scopeSelect{
+  width:100%;
+  font-family:'Gaegu', cursive;
+  font-size:18px;
+  padding:12px 14px;
+  border-radius:12px;
+  border:2px dashed var(--ink-soft);
+  background:#fff;
+  color:var(--ink);
+  cursor:pointer;
+}
+.word-toggle{
+  display:flex; align-items:center; gap:8px;
+  margin-top:12px; cursor:pointer;
+  font-size:14px; color:var(--ink-soft);
+}
+.word-toggle input{width:17px; height:17px; cursor:pointer; accent-color:var(--accent);}
+.word-tag{
+  font-size:11px; background:#FFF1DE; color:#B4690E; font-weight:700;
+  padding:2px 8px; border-radius:999px; margin-left:6px;
+}
+
+.generate-btn{
+  display:block; width:100%;
+  margin-top:22px;
+  background:var(--grade-color);
+  color:#fff;
+  border:none;
+  border-radius:16px;
+  padding:18px;
+  font-family:'Gaegu', cursive;
+  font-size:24px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+  transition:transform .1s ease;
+}
+.generate-btn:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,0.15);}
+
+.history-link{
+  display:block; text-align:center; margin-top:14px;
+  background:none; border:none; color:var(--ink-soft);
+  font-family:'Gaegu', cursive; font-size:16px; font-weight:700; cursor:pointer;
+  text-decoration:underline;
+}
+.history-panel{margin-top:18px;}
+.history-empty{color:var(--ink-soft); font-size:14px; padding:6px 2px;}
+.history-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px;}
+.history-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:#F6F8FD; border-radius:10px; padding:10px 14px;
+  font-size:13.5px; color:var(--ink);
+  border-left:5px solid var(--accent-soft);
+}
+.history-item .h-tags{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+.history-item .h-tag{background:#fff; border-radius:999px; padding:2px 9px; font-size:12px; color:var(--ink-soft);}
+.history-item .h-score{font-family:'Nanum Gothic Coding', monospace; font-weight:700; white-space:nowrap;}
+.history-item .h-date{font-size:11.5px; color:var(--ink-soft); white-space:nowrap;}
+.history-clear{
+  margin-top:10px; background:none; border:none; color:var(--incorrect);
+  font-size:12.5px; cursor:pointer; text-decoration:underline; padding:0;
+}
+
+/* ---------- Worksheet screen ---------- */
+.hidden{display:none !important;}
+.summary-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--card-bg);
+  border-radius:14px; padding:12px 18px; margin-bottom:16px;
+  box-shadow:var(--shadow);
+  border-left:8px solid var(--grade-color);
+  flex-wrap:wrap;
+}
+.summary-bar .tags{display:flex; gap:8px; flex-wrap:wrap;}
+.tag{
+  font-family:'Gaegu', cursive; font-size:15px; font-weight:700;
+  background:var(--accent-soft); color:var(--accent);
+  padding:5px 12px; border-radius:999px;
+}
+.summary-bar .actions{display:flex; gap:8px;}
+.ghost-btn{
+  border:2px solid var(--ink); background:#fff; color:var(--ink);
+  font-family:'Gaegu',cursive; font-weight:700; font-size:14px;
+  border-radius:10px; padding:8px 14px; cursor:pointer;
+}
+.ghost-btn:hover{background:var(--ink); color:#fff;}
+
+.problem-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(300px,1fr));
+  gap:16px;
+  margin-bottom:90px;
+}
+.problem-card{
+  position:relative;
+  background:var(--card-bg);
+  border-radius:14px;
+  padding:18px 18px 14px;
+  box-shadow:var(--shadow);
+  border-top:6px solid var(--grade-color);
+  overflow:hidden;
+}
+.problem-card .p-head{
+  display:flex; align-items:center; gap:10px; margin-bottom:10px;
+}
+.p-num{
+  width:30px; height:30px; border-radius:50%;
+  border:2px solid var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Nanum Gothic Coding', monospace; font-weight:700; font-size:14px;
+  flex:none;
+}
+.p-topic{
+  font-size:12px; color:var(--ink-soft); background:var(--accent-soft);
+  padding:3px 10px; border-radius:999px; font-weight:500;
+}
+.p-question{
+  font-family:'Nanum Gothic Coding', monospace;
+  font-size:19px;
+  line-height:1.5;
+  margin:6px 0 14px;
+  color:var(--ink);
+}
+.answer-row{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+.answer-row input{
+  width:84px;
+  font-family:'Nanum Gothic Coding', monospace;
+  font-size:17px;
+  padding:8px 10px;
+  border-radius:8px;
+  border:2px solid #D8DCE8;
+  text-align:center;
+}
+.answer-row input:focus{outline:none; border-color:var(--accent);}
+.answer-row .lab{font-size:13px; color:var(--ink-soft);}
+.answer-row .sep{font-family:'Nanum Gothic Coding', monospace; font-weight:700; font-size:18px;}
+
+.step-toggle{
+  background:none; border:none; color:var(--accent); cursor:pointer;
+  font-family:'Gaegu', cursive; font-size:15px; font-weight:700; padding:0;
+}
+.steps{
+  margin-top:10px; padding:12px 14px; background:#F6F8FD; border-radius:10px;
+  border-left:4px solid var(--accent-soft);
+  font-size:13.5px; line-height:1.75; color:var(--ink-soft);
+}
+.steps div{margin-bottom:2px;}
+.steps div:last-child{color:var(--ink); font-weight:700; margin-top:6px;}
+
+/* stamp */
+.stamp{
+  position:absolute; top:10px; right:12px;
+  width:56px; height:56px;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transform:scale(1.5) rotate(0deg);
+  transition:opacity .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.stamp.show{opacity:.92; transform:scale(1) rotate(-10deg);}
+.stamp.correct{
+  border:5px solid var(--correct);
+  border-radius:48% 52% 45% 55% / 55% 45% 58% 42%;
+}
+.stamp.incorrect{transform-origin:center;}
+.stamp.incorrect.show{transform:scale(1) rotate(8deg);}
+.stamp.incorrect::before, .stamp.incorrect::after{
+  content:""; position:absolute; width:70%; height:5px; background:var(--incorrect);
+  top:50%; left:15%; border-radius:3px;
+}
+.stamp.incorrect::before{transform:rotate(45deg);}
+.stamp.incorrect::after{transform:rotate(-45deg);}
+
+.problem-card.graded .p-question, .problem-card.graded .answer-row input{opacity:.85;}
+.problem-card.graded.correct{background:#F4FBF6;}
+.problem-card.graded.incorrect{background:#FDF5F4;}
+
+.footer-bar{
+  position:fixed; left:0; right:0; bottom:0;
+  background:#fff; border-top:2px solid rgba(38,48,74,0.08);
+  padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:14px;
+  box-shadow:0 -6px 20px rgba(38,48,74,0.08);
+  z-index:10;
+}
+.footer-bar .score{
+  font-family:'Gaegu', cursive; font-size:20px; font-weight:700; min-width:150px; text-align:center;
+}
+.grade-check-btn{
+  background:var(--ink); color:#fff; border:none; border-radius:12px;
+  padding:14px 26px; font-family:'Gaegu', cursive; font-size:19px; font-weight:700; cursor:pointer;
+}
+.grade-check-btn:active{transform:translateY(1px);}
+
+@media (max-width:520px){
+  .app-header h1{font-size:34px;}
+  .footer-bar{flex-wrap:wrap;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="app-header">
+    <h1><span class="pencil">✏️</span> 초등 문제 생성기</h1>
+    <p id="headerSub">학년, 난이도, 범위를 골라서 나만의 문제지를 만들어 보세요</p>
+  </div>
+
+  <div class="subject-tabs">
+    <button class="subject-tab selected" id="subjectMathTab">🔢 수학</button>
+    <button class="subject-tab" id="subjectKoreanTab">📖 국어</button>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab selected" id="tabPractice">📝 문제 생성</button>
+    <button class="mode-tab" id="tabExam">🏆 모의고사</button>
+  </div>
+
+  <!-- EXAM SETTINGS SCREEN (모의고사 모드, 과목 공용) -->
+  <div id="examSettingsScreen" class="hidden">
+    <div class="panel">
+      <h2><span class="idx">1</span> 학년을 골라주세요</h2>
+      <div class="grade-row" id="examGradeRow"></div>
+    </div>
+    <div class="panel">
+      <h2><span class="idx">2</span> 문항 수</h2>
+      <div class="pill-row" id="examCountRow">
+        <button class="pill" data-c="20">20문항</button>
+        <button class="pill" data-c="30">30문항</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2><span class="idx">3</span> 제한 시간</h2>
+      <div class="pill-row" id="examTimeRow">
+        <button class="pill" data-t="20">20분</button>
+        <button class="pill" data-t="30">30분</button>
+        <button class="pill" data-t="40">40분</button>
+      </div>
+    </div>
+    <p class="exam-note" id="examNoteText">※ 모의고사는 기초학력 진단 수준(난이도 하)으로 출제되며, 단답형과 문장제가 섞여 나옵니다. 제한 시간이 끝나면 자동으로 제출됩니다.</p>
+    <button class="generate-btn" id="examStartBtn">모의고사 시작 →</button>
+  </div>
+
+  <!-- EXAM RUN SCREEN (과목 공용) -->
+  <div id="examRunScreen" class="hidden">
+    <div class="summary-bar">
+      <div class="tags" id="examSummaryTags"></div>
+      <div class="actions">
+        <button class="ghost-btn" id="examBackBtn">⚙ 설정으로</button>
+      </div>
+    </div>
+    <div class="problem-grid" id="examProblemGrid"></div>
+  </div>
+
+  <!-- EXAM RESULT SCREEN (과목 공용) -->
+  <div id="examResultScreen" class="hidden">
+    <div class="panel" id="examResultSummary"></div>
+    <div class="panel" id="examResultTopics"></div>
+    <div class="panel" id="examResultWrong"></div>
+    <div class="result-actions">
+      <button class="ghost-btn" id="examRetryBtn">🔄 같은 조건으로 다시 응시</button>
+      <button class="ghost-btn" id="examBackFromResultBtn">⚙ 설정으로</button>
+    </div>
+  </div>
+
+  <!-- ============ 수학 섹션 ============ -->
+  <div id="mathSection">
+  <!-- SETTINGS SCREEN (연습 모드) -->
+  <div id="settingsScreen">
+    <div class="panel">
+      <h2><span class="idx">1</span> 학년을 골라주세요</h2>
+      <div class="grade-row" id="gradeRow"></div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="idx">2</span> 난이도를 골라주세요</h2>
+      <div class="pill-row" id="diffRow">
+        <button class="pill" data-d="1">하 <small>(쉬움)</small></button>
+        <button class="pill" data-d="2">중 <small>(보통)</small></button>
+        <button class="pill" data-d="3">상 <small>(어려움)</small></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="idx">3</span> 범위를 골라주세요</h2>
+      <select id="scopeSelect"></select>
+      <label class="word-toggle">
+        <input type="checkbox" id="wordModeCheck">
+        <span>✏️ 문장제(이야기가 있는 문제) 섞어서 출제하기</span>
+      </label>
+    </div>
+
+    <button class="generate-btn" id="generateBtn">문제지 만들기 →</button>
+    <button class="history-link" id="historyToggle">📋 지난 기록 보기</button>
+    <div class="panel history-panel hidden" id="historyPanel">
+      <h2><span class="idx">★</span> 지난 기록</h2>
+      <div id="historyContent"></div>
+    </div>
+  </div>
+
+  <!-- WORKSHEET SCREEN -->
+  <div id="worksheetScreen" class="hidden">
+    <div class="summary-bar">
+      <div class="tags" id="summaryTags"></div>
+      <div class="actions">
+        <button class="ghost-btn" id="regenBtn">🔄 새 문제</button>
+        <button class="ghost-btn" id="backBtn">⚙ 설정으로</button>
+      </div>
+    </div>
+    <div class="problem-grid" id="problemGrid"></div>
+  </div>
+  </div>
+  <!-- ============ /수학 섹션 ============ -->
+
+  <!-- ============ 국어 섹션 ============ -->
+  <div id="koreanSection" class="hidden">
+    <div id="koSettingsScreen">
+      <div class="panel">
+        <h2><span class="idx">1</span> 학년을 골라주세요</h2>
+        <div class="grade-row" id="koGradeRow"></div>
+      </div>
+      <div class="panel">
+        <h2><span class="idx">2</span> 문제 유형을 골라주세요</h2>
+        <select id="koScopeSelect"></select>
+      </div>
+      <button class="generate-btn" id="koGenerateBtn">문제지 만들기 →</button>
+      <button class="history-link" id="koHistoryToggle">📋 지난 기록 보기</button>
+      <div class="panel history-panel hidden" id="koHistoryPanel">
+        <h2><span class="idx">★</span> 지난 기록</h2>
+        <div id="koHistoryContent"></div>
+      </div>
+    </div>
+
+    <div id="koWorksheetScreen" class="hidden">
+      <div class="summary-bar">
+        <div class="tags" id="koSummaryTags"></div>
+        <div class="actions">
+          <button class="ghost-btn" id="koRegenBtn">🔄 새 문제</button>
+          <button class="ghost-btn" id="koBackBtn">⚙ 설정으로</button>
+        </div>
+      </div>
+      <div class="problem-grid" id="koProblemGrid"></div>
+    </div>
+  </div>
+  <!-- ============ /국어 섹션 ============ -->
+</div>
+
+<div class="footer-bar hidden" id="footerBar">
+  <button class="grade-check-btn" id="checkBtn">✔ 채점하기</button>
+  <div class="score" id="scoreLabel">10문제 중 0개 풀었어요</div>
+</div>
+
+<div class="footer-bar hidden" id="examFooterBar">
+  <div class="exam-timer" id="examTimerLabel">40:00</div>
+  <button class="grade-check-btn" id="examSubmitBtn">✔ 제출하기</button>
+</div>
+
+
+<script>
+/* ========================= 유틸 ========================= */
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function gcdPure(a,b){a=Math.abs(a);b=Math.abs(b); while(b){[a,b]=[b,a%b];} return a||1;}
+function lcmPure(a,b){return Math.abs(a*b)/gcdPure(a,b);}
+function simplifyFraction(num,den){
+  if(den<0){num=-num;den=-den;}
+  const g=gcdPure(Math.abs(num),den)||1;
+  return [num/g, den/g];
+}
+
+/* 세로셈 덧셈: 자리별 받아올림 과정을 생성 */
+function additionSteps(a,b){
+  const as=String(a), bs=String(b);
+  const len=Math.max(as.length,bs.length);
+  const aPad=as.padStart(len,'0').split('').map(Number);
+  const bPad=bs.padStart(len,'0').split('').map(Number);
+  const placeNames=['일','십','백','천','만','십만','백만','천만','억','십억'];
+  let carry=0, resultDigits=[], lines=[];
+  for(let i=len-1;i>=0;i--){
+    const place=len-1-i;
+    const pn=placeNames[place]||('10^'+place);
+    const sum=aPad[i]+bPad[i]+carry;
+    const digit=sum%10;
+    const newCarry=Math.floor(sum/10);
+    let line=pn+'의 자리: '+aPad[i]+' + '+bPad[i];
+    if(carry) line+=' + (받아올림 '+carry+')';
+    line+=' = '+sum;
+    line+= newCarry? (' → '+digit+' 쓰고 '+newCarry+' 받아올림') : (' → '+digit+' 씀');
+    lines.push(line);
+    resultDigits.unshift(digit);
+    carry=newCarry;
+  }
+  if(carry) resultDigits.unshift(carry);
+  const answer=parseInt(resultDigits.join(''),10);
+  lines.push('따라서 '+a+' + '+b+' = '+answer);
+  return {steps:lines, answer};
+}
+
+/* 세로셈 뺄셈: 받아내림 과정을 생성 (a>=b 가정) */
+function subtractionSteps(a,b){
+  const as=String(a);
+  const len=as.length;
+  const aDigits=as.split('').map(Number);
+  const bDigits=String(b).padStart(len,'0').split('').map(Number);
+  const placeNames=['일','십','백','천','만','십만','백만','천만','억','십억'];
+  let borrow=0, resultDigits=[], lines=[];
+  for(let i=len-1;i>=0;i--){
+    const place=len-1-i;
+    const pn=placeNames[place]||('10^'+place);
+    let top=aDigits[i]-borrow;
+    const bottom=bDigits[i];
+    let newBorrow=0;
+    let line=pn+'의 자리: '+top;
+    if(top<bottom){ top+=10; newBorrow=1; line+=' → 윗자리에서 10을 받아내려 '+top; }
+    const diff=top-bottom;
+    line+=' - '+bottom+' = '+diff;
+    lines.push(line);
+    resultDigits.unshift(diff);
+    borrow=newBorrow;
+  }
+  while(resultDigits.length>1 && resultDigits[0]===0) resultDigits.shift();
+  const answer=parseInt(resultDigits.join(''),10);
+  lines.push('따라서 '+a+' - '+b+' = '+answer);
+  return {steps:lines, answer};
+}
+
+/* 곱셈: 자리값 분배 과정을 생성 */
+function multiplicationSteps(a,b){
+  const bs=String(b);
+  const parts=[];
+  for(let i=0;i<bs.length;i++){
+    const digit=Number(bs[i]);
+    const place=bs.length-1-i;
+    if(digit===0) continue;
+    parts.push(digit*Math.pow(10,place));
+  }
+  if(parts.length===0) parts.push(0);
+  let lines=[];
+  if(parts.length>1){
+    lines.push(b+' = '+parts.join(' + ')+' 로 나누어 계산해요.');
+  }
+  const subresults=[];
+  parts.forEach(p=>{
+    const prod=a*p;
+    subresults.push(prod);
+    if(parts.length>1) lines.push(a+' × '+p+' = '+prod);
+  });
+  const sum=subresults.reduce((x,y)=>x+y,0);
+  if(parts.length>1) lines.push(subresults.join(' + ')+' = '+sum);
+  lines.push('따라서 '+a+' × '+b+' = '+sum);
+  return {steps:lines, answer:sum};
+}
+
+/* 나눗셈: 몫과 나머지 */
+function divisionSteps(dividend,divisor){
+  const quotient=Math.floor(dividend/divisor);
+  const remainder=dividend-quotient*divisor;
+  let lines=[
+    dividend+' ÷ '+divisor+' 을(를) 계산해요.',
+    divisor+' × '+quotient+' = '+(divisor*quotient)+' 로 '+dividend+'에 가장 가깝습니다.'
+  ];
+  if(remainder>0){
+    lines.push(dividend+' - '+(divisor*quotient)+' = '+remainder+' (나머지)');
+    lines.push('따라서 '+dividend+' ÷ '+divisor+' = '+quotient+' ... '+remainder);
+  } else {
+    lines.push('따라서 '+dividend+' ÷ '+divisor+' = '+quotient);
+  }
+  return {steps:lines, answer:quotient, remainder};
+}
+
+/* 유클리드 호제법 */
+function gcdSteps(a,b){
+  let steps=[], x=a, y=b;
+  while(y!==0){
+    const q=Math.floor(x/y), r=x%y;
+    steps.push(x+' = '+y+' × '+q+' + '+r);
+    x=y; y=r;
+  }
+  steps.push('따라서 최대공약수는 '+x+'입니다.');
+  return {steps, answer:x};
+}
+
+function numberRangeForGrade(grade,diff){
+  const table={
+    1:[[1,9],[1,20],[10,50]],
+    2:[[10,50],[10,99],[100,500]],
+    3:[[100,500],[100,999],[1000,5000]],
+    4:[[1000,9999],[10000,99999],[100000,999999]],
+    5:[[10000,99999],[100000,999999],[1000000,9999999]],
+    6:[[100000,999999],[1000000,9999999],[10000000,99999999]]
+  };
+  return table[grade][diff-1];
+}
+
+/* ========================= 서술형(문장제) 템플릿 ========================= */
+const WORD_NAMES=['민준','서연','도윤','하은','시우','지우','유준','수아','예준','다은'];
+const WORD_ITEMS=['사탕','구슬','색종이','딱지','연필','공책','붙임딱지','귤','쿠키','풍선'];
+function pick(arr){return arr[randInt(0,arr.length-1)];}
+
+function addWordQuestion(a,b){
+  const n1=pick(WORD_NAMES), n2=pick(WORD_NAMES), it=pick(WORD_ITEMS);
+  const templates=[
+    n1+'이는 '+it+'을 '+a+'개 가지고 있었는데, '+n2+'에게 '+b+'개를 더 받았습니다. '+n1+'이가 가진 '+it+'은 모두 몇 개일까요?',
+    '문구점에 '+it+'이 '+a+'개 있었는데, '+b+'개를 더 들여왔습니다. 문구점에 있는 '+it+'은 모두 몇 개일까요?',
+    n1+'이네 반은 '+a+'명, '+n2+'이네 반은 '+b+'명입니다. 두 반 학생은 모두 몇 명일까요?'
+  ];
+  return pick(templates);
+}
+function subWordQuestion(a,b){
+  const n1=pick(WORD_NAMES), n2=pick(WORD_NAMES), it=pick(WORD_ITEMS);
+  const templates=[
+    n1+'이는 '+it+'을 '+a+'개 가지고 있었는데, 그중 '+b+'개를 '+n2+'에게 주었습니다. '+n1+'이에게 남은 '+it+'은 몇 개일까요?',
+    '버스에 '+a+'명이 타고 있었는데, 정류장에서 '+b+'명이 내렸습니다. 버스에 남은 사람은 몇 명일까요?',
+    '농장에 있던 '+it+' '+a+'개 중 '+b+'개를 팔았습니다. 남은 '+it+'은 몇 개일까요?'
+  ];
+  return pick(templates);
+}
+function mulWordQuestion(a,b){
+  const n1=pick(WORD_NAMES), it=pick(WORD_ITEMS);
+  const templates=[
+    '한 상자에 '+it+'이 '+a+'개씩 들어 있습니다. '+b+'상자에 들어 있는 '+it+'은 모두 몇 개일까요?',
+    n1+'이는 매일 '+it+'을 '+a+'개씩 모읍니다. '+b+'일 동안 모은 '+it+'은 모두 몇 개일까요?',
+    '한 줄에 학생이 '+a+'명씩 서 있습니다. '+b+'줄에 서 있는 학생은 모두 몇 명일까요?'
+  ];
+  return pick(templates);
+}
+function divWordQuestion(a,b){
+  const n1=pick(WORD_NAMES), it=pick(WORD_ITEMS);
+  const templates=[
+    it+' '+a+'개를 '+b+'명에게 똑같이 나누어 주려고 합니다. 한 명이 몇 개씩 가지고, 남는 '+it+'은 몇 개일까요? (몫과 나머지)',
+    n1+'이는 '+it+' '+a+'개를 한 봉지에 '+b+'개씩 담으려고 합니다. 봉지는 몇 개가 되고, 남는 '+it+'은 몇 개일까요? (몫과 나머지)'
+  ];
+  return pick(templates);
+}
+
+/* ========================= 문제 유형 ========================= */
+const TOPICS=[
+{id:'add', label:'덧셈', grades:[1,2,3,4,5,6], generate:(grade,diff,opts)=>{
+  const [min,max]=numberRangeForGrade(grade,diff);
+  const a=randInt(min,max), b=randInt(min,max);
+  const {steps,answer}=additionSteps(a,b);
+  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
+  const question = useWord ? addWordQuestion(a,b) : (a+' + '+b+' = ?');
+  return {topic:'덧셈', question, answerType:'number', correct:answer, unit:'', steps, isWord:useWord};
+}},
+{id:'sub', label:'뺄셈', grades:[1,2,3,4,5,6], generate:(grade,diff,opts)=>{
+  const [min,max]=numberRangeForGrade(grade,diff);
+  let a=randInt(min,max), b=randInt(min,max);
+  if(a<b){const t=a;a=b;b=t;}
+  const {steps,answer}=subtractionSteps(a,b);
+  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
+  const question = useWord ? subWordQuestion(a,b) : (a+' - '+b+' = ?');
+  return {topic:'뺄셈', question, answerType:'number', correct:answer, unit:'', steps, isWord:useWord};
+}},
+{id:'mul', label:'곱셈', grades:[2,3,4,5,6], generate:(grade,diff,opts)=>{
+  let a,b;
+  if(grade===2){ a=randInt(2,9); b=randInt(2,9); }
+  else{
+    const table={
+      3:[[2,9],[10,20],[10,50]],
+      4:[[10,20],[10,50],[50,99]],
+      5:[[10,50],[50,99],[10,99]],
+      6:[[10,99],[10,99],[100,999]]
+    };
+    const [amin,amax]=table[grade][diff-1];
+    a=randInt(amin,amax);
+    b= grade===3 ? randInt(2,9) : randInt(2, diff===3?99:20);
+  }
+  const {steps,answer}=multiplicationSteps(a,b);
+  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
+  const question = useWord ? mulWordQuestion(a,b) : (a+' × '+b+' = ?');
+  return {topic:'곱셈', question, answerType:'number', correct:answer, unit:'', steps, isWord:useWord};
+}},
+{id:'div', label:'나눗셈', grades:[3,4,5,6], generate:(grade,diff,opts)=>{
+  const dtable={3:[2,9],4:[2,12],5:[2,20],6:[2,50]};
+  const [dmin,dmax]=dtable[grade];
+  const divisor=randInt(dmin,dmax);
+  const qtable={3:[2,9],4:[3,30],5:[5,100],6:[10,300]};
+  const [qmin,qmax]=qtable[grade];
+  const quotient=randInt(qmin,qmax);
+  let remainder=0;
+  const allowRemainder = diff>=2;
+  if(allowRemainder && Math.random()<0.6) remainder=randInt(1,divisor-1);
+  const dividend=divisor*quotient+remainder;
+  const {steps,answer,remainder:rem}=divisionSteps(dividend,divisor);
+  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
+  const question = useWord ? divWordQuestion(dividend,divisor) : (dividend+' ÷ '+divisor+' = ?  (몫과 나머지)');
+  return {topic:'나눗셈', question, answerType:'division', correct:{q:answer,r:rem}, unit:'', steps, isWord:useWord};
+}},
+{id:'frac', label:'분수의 덧셈과 뺄셈', grades:[3,4,5,6], generate:(grade,diff)=>{
+  if(grade<=4){
+    const d=randInt(3,12);
+    let n1=randInt(1,d-1), n2=randInt(1,d-1);
+    let op=Math.random()<0.5?'+':'-';
+    if(op==='-' && n1<n2){const t=n1;n1=n2;n2=t;}
+    const rawNum = op==='+'? n1+n2 : n1-n2;
+    const [sn,sd]=simplifyFraction(rawNum,d);
+    let steps=['분모가 같으므로 분자끼리 계산해요.', n1+'/'+d+' '+op+' '+n2+'/'+d+' = '+rawNum+'/'+d];
+    if(sn!==rawNum||sd!==d) steps.push('기약분수로 나타내면 '+sn+'/'+sd+' 입니다.');
+    return {topic:'분수의 덧셈과 뺄셈', question:n1+'/'+d+' '+op+' '+n2+'/'+d+' = ? (기약분수)', answerType:'fraction', correct:{num:sn,den:sd}, unit:'', steps};
+  } else {
+    let d1=randInt(2,9), d2=randInt(2,9);
+    while(d2===d1) d2=randInt(2,9);
+    let n1=randInt(1,d1-1), n2=randInt(1,d2-1);
+    let op=Math.random()<0.5?'+':'-';
+    const L=lcmPure(d1,d2);
+    let n1c=n1*(L/d1), n2c=n2*(L/d2);
+    if(op==='-' && n1c<n2c){ let t; t=d1;d1=d2;d2=t; t=n1;n1=n2;n2=t; t=n1c;n1c=n2c;n2c=t; }
+    const rawNum= op==='+'? n1c+n2c : n1c-n2c;
+    const [sn,sd]=simplifyFraction(rawNum,L);
+    let steps=[
+      d1+'과 '+d2+'의 최소공배수는 '+L+'입니다. (통분)',
+      n1+'/'+d1+' = '+n1c+'/'+L+',  '+n2+'/'+d2+' = '+n2c+'/'+L,
+      n1c+'/'+L+' '+op+' '+n2c+'/'+L+' = '+rawNum+'/'+L
+    ];
+    if(sn!==rawNum||sd!==L) steps.push('기약분수로 나타내면 '+sn+'/'+sd+' 입니다.');
+    return {topic:'분수의 덧셈과 뺄셈', question:n1+'/'+d1+' '+op+' '+n2+'/'+d2+' = ? (기약분수)', answerType:'fraction', correct:{num:sn,den:sd}, unit:'', steps};
+  }
+}},
+{id:'dec', label:'소수의 덧셈과 뺄셈', grades:[3,4,5,6], generate:(grade,diff)=>{
+  const dp= diff===1?1:2;
+  const scale=Math.pow(10,dp);
+  const magTable={3:[10,99],4:[10,299],5:[10,999],6:[10,4999]};
+  const [mmin,mmax]=magTable[grade];
+  let x=randInt(mmin,mmax), y=randInt(mmin,mmax);
+  const op=Math.random()<0.5?'+':'-';
+  if(op==='-' && x<y){const t=x;x=y;y=t;}
+  const {steps:intSteps, answer:intAnswer}= op==='+'? additionSteps(x,y): subtractionSteps(x,y);
+  const a=parseFloat((x/scale).toFixed(dp)), b=parseFloat((y/scale).toFixed(dp)), answer=parseFloat((intAnswer/scale).toFixed(dp));
+  const steps=[
+    '소수를 '+scale+'배 하여 자연수로 바꾸어 계산해요: '+a+' → '+x+',  '+b+' → '+y
+  ].concat(intSteps).concat([
+    '계산 결과를 다시 '+scale+'로 나누면: '+intAnswer+' ÷ '+scale+' = '+answer,
+    '따라서 '+a+' '+op+' '+b+' = '+answer
+  ]);
+  return {topic:'소수의 덧셈과 뺄셈', question:a+' '+op+' '+b+' = ?', answerType:'number', correct:answer, unit:'', steps};
+}},
+{id:'fm', label:'약수와 배수', grades:[5,6], generate:(grade,diff)=>{
+  const rtable={5:[[4,30],[4,40],[10,60]], 6:[[4,40],[10,60],[20,100]]};
+  const [rmin,rmax]=rtable[grade][diff-1];
+  let a=randInt(rmin,rmax), b=randInt(rmin,rmax);
+  while(b===a) b=randInt(rmin,rmax);
+  const askGCD=Math.random()<0.5;
+  if(askGCD){
+    const {steps,answer}=gcdSteps(a,b);
+    return {topic:'약수와 배수', question:a+'와 '+b+'의 최대공약수를 구하세요.', answerType:'number', correct:answer, unit:'', steps};
+  } else {
+    const g=gcdPure(a,b), l=a*b/g;
+    const steps=['먼저 최대공약수를 구해요.'].concat(gcdSteps(a,b).steps).concat(['최소공배수 = ('+a+' × '+b+') ÷ 최대공약수 = '+(a*b)+' ÷ '+g+' = '+l]);
+    return {topic:'약수와 배수', question:a+'와 '+b+'의 최소공배수를 구하세요.', answerType:'number', correct:l, unit:'', steps};
+  }
+}},
+{id:'geo', label:'도형의 둘레와 넓이', grades:[4,5,6], generate:(grade,diff)=>{
+  const table={4:[3,15],5:[5,30],6:[10,60]};
+  const [wmin,wmax0]=table[grade];
+  const spread= diff===1?0: diff===2?5:15;
+  const wmax=wmax0+spread;
+  const w=randInt(wmin,wmax), h=randInt(wmin,wmax);
+  const askPerimeter=Math.random()<0.5;
+  if(askPerimeter){
+    const result=(w+h)*2;
+    const steps=['직사각형의 둘레 = (가로 + 세로) × 2', '= ('+w+' + '+h+') × 2', '= '+(w+h)+' × 2', '= '+result];
+    return {topic:'도형의 둘레와 넓이', question:'가로 '+w+'cm, 세로 '+h+'cm인 직사각형의 둘레는 몇 cm일까요?', answerType:'number', correct:result, unit:'cm', steps};
+  } else {
+    const result=w*h;
+    const steps=['직사각형의 넓이 = 가로 × 세로', '= '+w+' × '+h+' = '+result];
+    return {topic:'도형의 둘레와 넓이', question:'가로 '+w+'cm, 세로 '+h+'cm인 직사각형의 넓이는 몇 cm²일까요?', answerType:'number', correct:result, unit:'cm²', steps};
+  }
+}},
+{id:'angle', label:'각도', grades:[4,5,6], generate:(grade,diff)=>{
+  let attempt=0, missing=-1, angles=[], mode;
+  while(missing<=0 && attempt<20){
+    attempt++;
+    let modes;
+    if(diff===1) modes=[{n:2,total:180,label:'일직선 위의 두 각'},{n:3,total:180,label:'삼각형의 세 각'}];
+    else if(diff===2) modes=[{n:3,total:180,label:'삼각형의 세 각'},{n:4,total:360,label:'사각형의 네 각'}];
+    else modes=[{n:4,total:360,label:'사각형의 네 각'},{n:3,total:180,label:'삼각형의 세 각'}];
+    mode=modes[randInt(0,modes.length-1)];
+    angles=[]; let remaining=mode.total;
+    for(let i=0;i<mode.n-1;i++){
+      const slotsLeft=mode.n-1-i;
+      const maxA=Math.max(20, remaining-slotsLeft*15-10);
+      const a=randInt(15, Math.max(20,maxA));
+      angles.push(a); remaining-=a;
+    }
+    missing=remaining;
+  }
+  const steps=[
+    mode.label+'의 합은 '+mode.total+'°입니다.',
+    '주어진 각의 합: '+angles.join('° + ')+'° = '+(mode.total-missing)+'°',
+    mode.total+'° - '+(mode.total-missing)+'° = '+missing+'°'
+  ];
+  return {topic:'각도', question:mode.label+' 중 '+angles.map(a=>a+'°').join(', ')+'가 주어졌을 때, 나머지 한 각의 크기를 구하세요.', answerType:'number', correct:missing, unit:'°', steps};
+}},
+{id:'ratio', label:'비와 비율', grades:[6], generate:(grade,diff)=>{
+  const g=randInt(2, diff===1?4:diff===2?6:9);
+  let a2=randInt(2,12), b2=randInt(2,12);
+  while(b2===a2) b2=randInt(2,12);
+  const a=a2*g, b=b2*g;
+  const gg=gcdPure(a,b);
+  const sa=a/gg, sb=b/gg;
+  const steps=[a+'와 '+b+'의 최대공약수는 '+gg+'입니다.', a+' ÷ '+gg+' = '+sa+',  '+b+' ÷ '+gg+' = '+sb, '따라서 가장 간단한 자연수의 비는 '+sa+' : '+sb+' 입니다.'];
+  return {topic:'비와 비율', question:a+' : '+b+'를 가장 간단한 자연수의 비로 나타내세요.', answerType:'ratio', correct:{a:sa,b:sb}, unit:'', steps};
+}}
+];
+
+/* ========================= 국어 문제은행 ========================= */
+const KOREAN_BANK={
+spelling:{label:'맞춤법/띄어쓰기', items:{
+1:[
+{q:"다음 중 띄어쓰기가 올바른 것은 무엇일까요?", options:["나는 학교에 간다","나는학교에 간다","나는 학교에간다","나는학교에간다"], correct:0, explain:"문장 성분 사이는 띄어 써야 해요. '나는 / 학교에 / 간다'처럼 띄어 씁니다."},
+{q:"낱말의 받침이 바르게 쓰인 것은?", options:["꽃","꼳","꼿","꽅"], correct:0, explain:"'꽃'은 받침에 'ㅊ'을 씁니다."},
+{q:"다음 중 맞는 표기는?", options:["숫자","수자","숫짜","수짜"], correct:0, explain:"'숫자'가 바른 표기입니다."},
+{q:"띄어쓰기가 바른 문장은?", options:["나는 밥을 먹었다","나는밥을 먹었다","나는 밥을먹었다","나는밥을먹었다"], correct:0, explain:"단어와 단어 사이는 띄어 씁니다."}
+],
+2:[
+{q:"며칠이 지났는지 물을 때 바른 표기는?", options:["며칠","몇일","몇 일","며 칠"], correct:0, explain:"'몇일'이 아니라 '며칠'이 표준어입니다."},
+{q:"'금방'이라는 뜻으로 쓸 때 바른 표기는?", options:["금세","금새","금세요가 아닌 금새요","금새요"], correct:0, explain:"'금방'이라는 뜻일 때는 '금세'가 맞습니다."},
+{q:"다음 중 바른 인사말 표기는?", options:["안녕하세요","안뇽하세요","안녕히세요","안녕하십니요"], correct:0, explain:"'안녕하세요'가 바른 인사말 표기입니다."},
+{q:"띄어쓰기가 올바른 것은?", options:["나도 같이 가고 싶어","나도같이 가고 싶어","나도 같이가고 싶어","나도 같이 가고싶어"], correct:0, explain:"각 단어는 띄어 씁니다."}
+],
+3:[
+{q:"빈칸에 알맞은 말은? '오늘은 학교에 가면 ___.'", options:["안 돼","안 되","안됀","안됌"], correct:0, explain:"'되어'의 준말은 '돼'예요. '안 돼'가 바른 표기입니다."},
+{q:"다음 중 바른 표기는?", options:["설거지","설겆이","설것이","설걷이"], correct:0, explain:"'설거지'가 표준어입니다."},
+{q:"다음 중 바른 표기는?", options:["왠지","웬지","왠 지","웬 지"], correct:0, explain:"'왜인지'가 줄어든 말은 '왠지'입니다. '웬'은 '어찌 된'이라는 뜻의 다른 말이에요."},
+{q:"띄어쓰기가 올바른 것은?", options:["할 수 있다","할수 있다","할 수있다","할수있다"], correct:0, explain:"'수'는 의존 명사로 앞말과 띄어 씁니다."}
+],
+4:[
+{q:"'어찌 된 일'이라는 뜻일 때 바른 표기는?", options:["웬일이니","왠일이니","웬 일이니","왠 일이니"], correct:0, explain:"'어찌 된 일'이라는 뜻일 때는 '웬일'이 바릅니다."},
+{q:"다음 중 바른 표기는?", options:["어이없다","어의없다","어이 없다가 아님","얼이없다"], correct:0, explain:"표준어는 '어이없다'입니다."},
+{q:"'다시 만나요'의 준말로 바른 것은?", options:["봬요","뵈요","뵈여요","뵙요"], correct:0, explain:"'뵈어요'의 준말은 '봬요'입니다."},
+{q:"띄어쓰기가 올바른 것은?", options:["먹을 만큼 먹어라","먹을만큼 먹어라","먹을 만 큼 먹어라","먹을만 큼먹어라"], correct:0, explain:"'만큼'이 정도를 나타낼 때는 앞말과 띄어 씁니다."}
+],
+5:[
+{q:"'카드로 물건값을 지불하다'라는 뜻에 맞는 표기는?", options:["결제","결재","결졔","결쟤"], correct:0, explain:"돈을 지불하는 것은 '결제', 상사의 허락을 받는 것은 '결재'입니다."},
+{q:"'문서에 대한 허락을 받다'라는 뜻에 맞는 표기는?", options:["결재","결제","결쟤","결졔"], correct:0, explain:"허락을 받는 것은 '결재'입니다."},
+{q:"'새로운 기술이나 제품을 만들다'라는 뜻에 맞는 표기는?", options:["개발","계발","게발","개펼"], correct:0, explain:"기술이나 제품을 만드는 것은 '개발', 재능을 이끌어내는 것은 '계발'입니다."},
+{q:"'타고난 재능을 이끌어내다'라는 뜻에 맞는 표기는?", options:["계발","개발","게발","개펼"], correct:0, explain:"재능을 이끌어내는 것은 '계발'입니다."}
+],
+6:[
+{q:"다음 중 바른 표기는?", options:["희한하다","희안하다","희얀하다","히한하다"], correct:0, explain:"표준어는 '희한하다'입니다."},
+{q:"다음 중 바른 표기는?", options:["곰곰이","곰곰히","곰곰이다가 아님","곰곰하"], correct:0, explain:"부사 '곰곰이'는 '-이'로 적습니다."},
+{q:"다음 중 바른 표기는?", options:["며칠째","몇일째","며칠채","몇일채"], correct:0, explain:"'며칠째'가 바른 표기입니다."},
+{q:"띄어쓰기가 올바른 것은?", options:["떠난 지 3년이 됐다","떠난지 3년이 됐다","떠난 지3년이 됐다","떠난지3년이 됐다"], correct:0, explain:"시간의 경과를 나타내는 '지'는 의존 명사로 앞말과 띄어 씁니다."}
+]
+}},
+vocab:{label:'어휘/뜻풀이', items:{
+1:[
+{q:"'기쁘다'와 뜻이 비슷한 말은?", options:["즐겁다","슬프다","화나다","무섭다"], correct:0, explain:"'기쁘다'와 '즐겁다'는 비슷한 뜻을 가진 말입니다."},
+{q:"'크다'의 반대말은?", options:["작다","길다","넓다","높다"], correct:0, explain:"'크다'의 반대말은 '작다'입니다."},
+{q:"'덥다'의 반대말은?", options:["춥다","맵다","쓰다","달다"], correct:0, explain:"'덥다'의 반대말은 '춥다'입니다."},
+{q:"'친구'와 뜻이 비슷한 말은?", options:["동무","가족","선생님","이웃"], correct:0, explain:"'친구'와 '동무'는 비슷한 뜻을 가진 말입니다."}
+],
+2:[
+{q:"'재빠르다'의 뜻으로 알맞은 것은?", options:["움직임이 매우 빠르다","말이 많다","힘이 세다","키가 크다"], correct:0, explain:"'재빠르다'는 움직임이 매우 빠르다는 뜻입니다."},
+{q:"'조심하다'와 뜻이 비슷한 말은?", options:["주의하다","서두르다","게으르다","자랑하다"], correct:0, explain:"'조심하다'와 '주의하다'는 비슷한 뜻입니다."},
+{q:"'푸르다'의 뜻으로 알맞은 것은?", options:["풀빛과 같이 밝고 선명하다","붉은빛을 띠다","어둡고 검다","노랗고 밝다"], correct:0, explain:"'푸르다'는 풀빛처럼 밝고 선명한 색을 뜻합니다."},
+{q:"'가지런하다'의 뜻으로 알맞은 것은?", options:["여럿이 층이 나지 않고 고르다","매우 지저분하다","매우 무겁다","아주 빠르다"], correct:0, explain:"'가지런하다'는 여럿이 고르게 정리된 상태를 뜻합니다."}
+],
+3:[
+{q:"'배려하다'의 뜻으로 알맞은 것은?", options:["도와주거나 보살펴 주려고 마음을 쓰다","화를 내다","자랑을 하다","경쟁을 하다"], correct:0, explain:"'배려하다'는 남을 도와주려고 마음을 쓴다는 뜻입니다."},
+{q:"'신중하다'와 뜻이 비슷한 말은?", options:["조심스럽다","가볍다","성급하다","무모하다"], correct:0, explain:"'신중하다'와 '조심스럽다'는 비슷한 뜻입니다."},
+{q:"'풍부하다'의 뜻으로 알맞은 것은?", options:["넉넉하고 많다","매우 부족하다","아주 적다","텅 비어 있다"], correct:0, explain:"'풍부하다'는 넉넉하고 많다는 뜻입니다."},
+{q:"'소중하다'와 뜻이 비슷한 말은?", options:["귀중하다","하찮다","값싸다","흔하다"], correct:0, explain:"'소중하다'와 '귀중하다'는 비슷한 뜻입니다."}
+],
+4:[
+{q:"'협동'의 뜻으로 알맞은 것은?", options:["힘을 합쳐 서로 도움","혼자서 일을 함","서로 다툼","일을 미룸"], correct:0, explain:"'협동'은 힘을 합쳐 서로 돕는다는 뜻입니다."},
+{q:"'유익하다'의 뜻으로 알맞은 것은?", options:["이롭거나 도움이 된다","해롭고 나쁘다","아무 상관이 없다","매우 지루하다"], correct:0, explain:"'유익하다'는 이롭거나 도움이 된다는 뜻입니다."},
+{q:"'검소하다'의 뜻으로 알맞은 것은?", options:["돈이나 물건을 아껴 쓰다","돈을 마구 쓰다","물건을 많이 모으다","일을 게을리하다"], correct:0, explain:"'검소하다'는 아껴 쓴다는 뜻입니다."},
+{q:"'각별하다'의 뜻으로 알맞은 것은?", options:["보통과 다르게 특별하다","아주 평범하다","전혀 관심이 없다","매우 흔하다"], correct:0, explain:"'각별하다'는 보통과 다르게 특별하다는 뜻입니다."}
+],
+5:[
+{q:"'모순'의 뜻으로 알맞은 것은?", options:["두 가지 사실이 서로 앞뒤가 맞지 않음","완벽하게 들어맞음","매우 순조로움","서로 협력함"], correct:0, explain:"'모순'은 두 사실이 서로 맞지 않는다는 뜻입니다."},
+{q:"'타당하다'와 뜻이 비슷한 말은?", options:["합리적이다","엉뚱하다","무의미하다","불공평하다"], correct:0, explain:"'타당하다'와 '합리적이다'는 비슷한 뜻입니다."},
+{q:"'간과하다'의 뜻으로 알맞은 것은?", options:["대수롭지 않게 여겨 넘기다","꼼꼼히 살펴보다","크게 걱정하다","자세히 기록하다"], correct:0, explain:"'간과하다'는 대수롭지 않게 넘긴다는 뜻입니다."},
+{q:"'심오하다'의 뜻으로 알맞은 것은?", options:["뜻이 깊고 오묘하다","매우 가볍다","단순하고 뻔하다","겉으로 드러나 있다"], correct:0, explain:"'심오하다'는 뜻이 깊고 오묘하다는 뜻입니다."}
+],
+6:[
+{q:"'객관적'의 뜻으로 알맞은 것은?", options:["자기 생각에 치우치지 않고 있는 그대로 보는 것","자기 생각만을 내세우는 것","감정에만 따르는 것","무조건 남을 따르는 것"], correct:0, explain:"'객관적'은 치우치지 않고 있는 그대로 본다는 뜻입니다."},
+{q:"'통찰력'의 뜻으로 알맞은 것은?", options:["사물이나 현상을 꿰뚫어 보는 능력","힘을 쓰는 능력","말을 잘하는 능력","그림을 잘 그리는 능력"], correct:0, explain:"'통찰력'은 꿰뚫어 보는 능력을 뜻합니다."},
+{q:"'포용하다'와 뜻이 비슷한 말은?", options:["너그럽게 감싸 주다","심하게 나무라다","멀리하다","무시하다"], correct:0, explain:"'포용하다'와 '너그럽게 감싸 주다'는 비슷한 뜻입니다."},
+{q:"'추론하다'의 뜻으로 알맞은 것은?", options:["알고 있는 사실을 근거로 다른 사실을 이끌어내다","무조건 암기하다","사실을 숨기다","결과를 무시하다"], correct:0, explain:"'추론하다'는 사실을 근거로 다른 사실을 이끌어낸다는 뜻입니다."}
+]
+}},
+idiom:{label:'속담·사자성어', items:{
+1:[
+{q:"'티끌 모아 태산'의 뜻으로 알맞은 것은?", options:["작은 것도 모이면 큰 것이 된다","티끌은 아무 쓸모가 없다","산은 매우 크다","작은 것은 소중하지 않다"], correct:0, explain:"작은 것도 꾸준히 모으면 큰 것이 된다는 뜻입니다."},
+{q:"'우물 안 개구리'의 뜻으로 알맞은 것은?", options:["넓은 세상을 알지 못하고 좁은 소견을 가진 사람","우물을 좋아하는 개구리","개구리가 우물에 산다는 사실","매우 시원한 곳"], correct:0, explain:"넓은 세상을 모르고 좁게만 생각하는 사람을 뜻합니다."},
+{q:"'꿀 먹은 벙어리'의 뜻으로 알맞은 것은?", options:["할 말이 있어도 못 하고 가만히 있는 사람","꿀을 매우 좋아하는 사람","말을 잘하는 사람","항상 조용한 사람"], correct:0, explain:"할 말을 못 하고 가만히 있는 사람을 뜻합니다."},
+{q:"'하늘의 별 따기'의 뜻으로 알맞은 것은?", options:["몹시 하기 힘든 일","매우 쉬운 일","별을 보는 것","하늘을 나는 것"], correct:0, explain:"몹시 이루기 어려운 일을 뜻합니다."}
+],
+2:[
+{q:"'원숭이도 나무에서 떨어진다'의 뜻으로 알맞은 것은?", options:["아무리 잘하는 사람도 실수할 때가 있다","원숭이는 나무를 잘 탄다","나무는 위험하다","동물은 실수하지 않는다"], correct:0, explain:"아무리 능숙한 사람도 실수할 수 있다는 뜻입니다."},
+{q:"'백지장도 맞들면 낫다'의 뜻으로 알맞은 것은?", options:["쉬운 일도 서로 도우면 더 쉽다","백지장은 매우 무겁다","혼자 하는 것이 낫다","종이는 가볍다"], correct:0, explain:"아무리 쉬운 일도 서로 도우면 더 쉽다는 뜻입니다."},
+{q:"'소 잃고 외양간 고친다'의 뜻으로 알맞은 것은?", options:["일이 잘못된 뒤에야 후회하며 고침","소를 아주 잘 키운다","외양간이 튼튼하다","미리 준비를 잘한다"], correct:0, explain:"일을 그르친 뒤에야 뒤늦게 손을 쓴다는 뜻입니다."},
+{q:"'가는 말이 고와야 오는 말이 곱다'의 뜻으로 알맞은 것은?", options:["내가 잘해야 남도 나에게 잘한다","말은 예쁘게 꾸며야 한다","말은 빨리 해야 한다","말을 하지 않는 게 좋다"], correct:0, explain:"내가 잘 대해야 남도 나를 잘 대한다는 뜻입니다."}
+],
+3:[
+{q:"'일석이조'의 뜻으로 알맞은 것은?", options:["한 가지 일로 두 가지 이익을 얻음","돌 하나가 새 두 마리","매우 어려운 일","혼자서 하는 일"], correct:0, explain:"한 가지 일로 두 가지 이익을 얻는다는 뜻입니다."},
+{q:"'유비무환'의 뜻으로 알맞은 것은?", options:["미리 준비가 되어 있으면 걱정이 없다","걱정이 많으면 준비를 못 한다","준비는 필요 없다","항상 걱정만 한다"], correct:0, explain:"미리 준비하면 걱정할 것이 없다는 뜻입니다."},
+{q:"'발 없는 말이 천 리 간다'의 뜻으로 알맞은 것은?", options:["말은 순식간에 멀리 퍼진다","말에게는 발이 없다","천 리는 매우 먼 거리다","말을 타면 빨리 간다"], correct:0, explain:"말은 순식간에 멀리까지 퍼진다는 뜻입니다."},
+{q:"'등잔 밑이 어둡다'의 뜻으로 알맞은 것은?", options:["가까이 있는 것을 오히려 잘 모른다","등잔은 밝게 빛난다","어두운 곳은 위험하다","등잔은 매우 뜨겁다"], correct:0, explain:"가까이 있는 것을 오히려 잘 모른다는 뜻입니다."}
+],
+4:[
+{q:"'자업자득'의 뜻으로 알맞은 것은?", options:["자기가 저지른 일의 결과를 자기가 받음","남에게 도움을 줌","항상 운이 좋음","일을 열심히 함"], correct:0, explain:"자기가 한 일의 결과를 자기가 받는다는 뜻입니다."},
+{q:"'각주구검'의 뜻으로 알맞은 것은?", options:["융통성 없이 옛것만 고집함","배를 타고 여행함","검을 아주 잘 다룸","강물이 빠르게 흐름"], correct:0, explain:"융통성 없이 낡은 방법만 고집하는 것을 뜻합니다."},
+{q:"'낮말은 새가 듣고 밤말은 쥐가 듣는다'의 뜻으로 알맞은 것은?", options:["아무리 조심해도 말은 새어 나가기 쉽다","새와 쥐는 말을 알아듣는다","낮과 밤은 서로 다르다","밤에는 조용히 해야 한다"], correct:0, explain:"아무리 조심해도 말은 결국 새어 나간다는 뜻입니다."},
+{q:"'과유불급'의 뜻으로 알맞은 것은?", options:["지나친 것은 부족한 것만 못하다","많을수록 좋다","적을수록 좋다","무엇이든 넘쳐야 한다"], correct:0, explain:"지나친 것은 모자란 것만 못하다는 뜻입니다."}
+],
+5:[
+{q:"'고진감래'의 뜻으로 알맞은 것은?", options:["고생 끝에 즐거움이 옴","즐거움 뒤에 고생이 옴","고생은 끝이 없음","즐거움은 짧고 헛되다"], correct:0, explain:"고생 끝에 즐거움이 온다는 뜻입니다."},
+{q:"'타산지석'의 뜻으로 알맞은 것은?", options:["다른 사람의 하찮은 언행도 자기를 갈고닦는 데 도움이 됨","돌을 다듬어 산을 만듦","남의 것은 신경 쓰지 않음","혼자 힘으로 모든 것을 이룸"], correct:0, explain:"다른 사람의 언행도 자신을 돌아보는 데 도움이 된다는 뜻입니다."},
+{q:"'열 길 물속은 알아도 한 길 사람 속은 모른다'의 뜻으로 알맞은 것은?", options:["사람의 속마음은 알기 어렵다","물속은 매우 깊다","사람보다 물이 더 무섭다","물속을 재는 것은 쉽다"], correct:0, explain:"사람의 속마음은 알기 매우 어렵다는 뜻입니다."},
+{q:"'수주대토'의 뜻으로 알맞은 것은?", options:["한 가지 일에만 얽매여 융통성이 없음","토끼를 아주 잘 잡음","나무를 매우 좋아함","우연을 기다리지 않음"], correct:0, explain:"한 가지 일에만 얽매여 융통성이 없다는 뜻입니다."}
+],
+6:[
+{q:"'새옹지마'의 뜻으로 알맞은 것은?", options:["인생의 좋고 나쁨은 예측하기 어렵다","말을 아주 잘 탄다","항상 불행이 계속된다","항상 행운이 계속된다"], correct:0, explain:"인생의 좋고 나쁨은 미리 알 수 없다는 뜻입니다."},
+{q:"'각골난망'의 뜻으로 알맞은 것은?", options:["입은 은혜가 뼈에 새길 만큼 커서 잊을 수 없음","뼈가 아파서 잊어버림","은혜를 쉽게 잊음","뼈를 깎는 노력이 소용없음"], correct:0, explain:"입은 은혜를 잊을 수 없다는 뜻입니다."},
+{q:"'빈 수레가 요란하다'의 뜻으로 알맞은 것은?", options:["실속 없는 사람이 겉으로 더 떠들썩하다","수레는 짐이 없으면 가볍다","수레바퀴 소리는 크다","빈 수레는 쓸모가 없다"], correct:0, explain:"실속 없는 사람이 오히려 더 떠들썩하다는 뜻입니다."},
+{q:"'괄목상대'의 뜻으로 알맞은 것은?", options:["눈을 비비고 다시 볼 정도로 실력이 몰라보게 늚","서로 마주 보고 눈싸움을 함","전혀 성장하지 않음","상대를 무시함"], correct:0, explain:"실력이 몰라보게 늘었다는 뜻입니다."}
+]
+}},
+grammar:{label:'문법(품사·문장성분)', items:{
+1:[
+{q:"다음 중 움직임을 나타내는 말(동사)은?", options:["뛰다","예쁘다","사과","하늘"], correct:0, explain:"'뛰다'는 움직임을 나타내는 동사입니다."},
+{q:"다음 중 이름을 나타내는 말(명사)은?", options:["나무","달리다","크다","빨리"], correct:0, explain:"'나무'는 사물의 이름을 나타내는 명사입니다."},
+{q:"다음 중 성질이나 상태를 나타내는 말은?", options:["예쁘다","먹다","학교","공"], correct:0, explain:"'예쁘다'는 성질이나 상태를 나타내는 말입니다."},
+{q:"다음 중 사람이나 사물의 이름이 아닌 것은?", options:["웃다","사자","연필","엄마"], correct:0, explain:"'웃다'는 움직임을 나타내는 말이지 이름이 아닙니다."}
+],
+2:[
+{q:"'철수가 밥을 먹는다'에서 '먹는다'는 어떤 말일까요?", options:["움직임을 나타내는 말(동사)","이름을 나타내는 말(명사)","꾸며 주는 말","이어 주는 말"], correct:0, explain:"'먹는다'는 움직임을 나타내는 동사입니다."},
+{q:"'예쁜 꽃이 피었다'에서 '예쁜'은 무엇을 꾸며 줄까요?", options:["꽃","피었다","예쁜","전체 문장"], correct:0, explain:"'예쁜'은 뒤에 오는 '꽃'을 꾸며 줍니다."},
+{q:"문장에서 '누가/무엇이'에 해당하는 부분을 무엇이라 부를까요?", options:["주어","서술어","목적어","꾸밈말"], correct:0, explain:"문장의 주체가 되는 부분을 주어라고 합니다."},
+{q:"'무엇을 하다/어떠하다'에 해당하는 부분을 무엇이라 부를까요?", options:["서술어","주어","목적어","조사"], correct:0, explain:"동작이나 상태를 풀이하는 부분을 서술어라고 합니다."}
+],
+3:[
+{q:"'나는 사과를 먹었다'에서 목적어는 무엇일까요?", options:["사과를","나는","먹었다","맛있게"], correct:0, explain:"'을/를'이 붙어 동작의 대상이 되는 '사과를'이 목적어입니다."},
+{q:"다음 중 흉내 내는 말(의성어·의태어)은?", options:["멍멍","학교","친구","공부"], correct:0, explain:"'멍멍'은 소리를 흉내 내는 의성어입니다."},
+{q:"'높다'의 반대되는 뜻을 가진 말은?", options:["낮다","깊다","넓다","좁다"], correct:0, explain:"'높다'의 반대말은 '낮다'입니다."},
+{q:"문장 부호 중 물음을 나타낼 때 쓰는 것은?", options:["?","!",".",","], correct:0, explain:"물음을 나타낼 때는 물음표(?)를 씁니다."}
+],
+4:[
+{q:"'철수는 빠르게 달렸다'에서 '빠르게'는 무엇을 꾸며 줄까요?", options:["달렸다","철수는","빠르게","아무것도 꾸미지 않음"], correct:0, explain:"'빠르게'는 서술어 '달렸다'를 꾸며 주는 말입니다."},
+{q:"다음 중 높임말이 아닌 것은?", options:["먹다","드시다","계시다","주무시다"], correct:0, explain:"'먹다'는 높임말이 아닌 기본형입니다."},
+{q:"'-지만'처럼 두 문장을 이어 주는 말을 무엇이라 할까요?", options:["이어 주는 말(연결 어미)","꾸며 주는 말","이름 씨","움직씨"], correct:0, explain:"'-지만'은 두 문장을 이어 주는 연결 어미입니다."},
+{q:"다음 중 반대말끼리 바르게 짝지어진 것은?", options:["뜨겁다-차갑다","뜨겁다-따뜻하다","차갑다-시원하다","뜨겁다-덥다"], correct:0, explain:"'뜨겁다'의 반대말은 '차갑다'입니다."}
+],
+5:[
+{q:"'철수가 동생에게 책을 주었다'에서 '동생에게'는 문장에서 어떤 역할을 할까요?", options:["부사어","주어","목적어","서술어"], correct:0, explain:"'동생에게'는 서술어를 꾸며 주는 부사어 역할을 합니다."},
+{q:"다음 중 높임을 나타내는 조사가 쓰인 것은?", options:["선생님께서","친구가","동생을","사과는"], correct:0, explain:"'께서'는 주어를 높이는 조사입니다."},
+{q:"능동문 '고양이가 쥐를 잡았다'를 피동문으로 바꾼 것은?", options:["쥐가 고양이에게 잡혔다","고양이가 쥐에게 잡혔다","쥐가 고양이를 잡았다","고양이를 쥐가 잡았다"], correct:0, explain:"동작을 당하는 대상이 주어가 되는 것이 피동문입니다."},
+{q:"다음 중 이어진문장(연결 어미로 이어진 문장)은?", options:["비가 와서 우산을 썼다","비가 왔다","우산을 썼다","비 오는 날"], correct:0, explain:"'-어서'로 두 문장이 이어져 있으므로 이어진문장입니다."}
+],
+6:[
+{q:"다음 중 관형어(꾸며 주는 말)가 쓰인 문장은?", options:["예쁜 꽃이 피었다","꽃이 피었다","꽃은 예쁘다","피었다"], correct:0, explain:"'예쁜'이 '꽃'을 꾸미는 관형어입니다."},
+{q:"'할머니께서 진지를 드신다'에서 높임의 대상은 누구일까요?", options:["할머니","진지","드신다","화자 자신"], correct:0, explain:"'께서', '드신다'는 모두 할머니를 높이는 표현입니다."},
+{q:"다음 중 시간을 나타내는 부사어가 쓰인 문장은?", options:["어제 학교에 갔다","학교에 갔다","나는 학생이다","친구가 웃는다"], correct:0, explain:"'어제'가 시간을 나타내는 부사어입니다."},
+{q:"다음 중 문장 성분이 바르게 짝지어진 것은?", options:["철수가(주어)","철수가(서술어)","밥을(서술어)","먹었다(목적어)"], correct:0, explain:"'철수가'는 문장의 주체이므로 주어입니다."}
+]
+}},
+reading:{label:'짧은 독해 지문', items:{
+1:[
+{passage:"토끼는 당근을 좋아합니다. 오늘 토끼는 밭에서 당근 세 개를 뽑았습니다. 토끼는 신이 나서 깡충깡충 뛰었습니다.", q:"토끼가 뽑은 당근은 몇 개일까요?", options:["세 개","한 개","두 개","네 개"], correct:0, explain:"글에서 '당근 세 개를 뽑았습니다'라고 했습니다."},
+{passage:"민수는 아침에 일찍 일어났습니다. 세수를 하고 밥을 먹은 뒤 학교에 갔습니다.", q:"민수가 학교에 가기 전에 한 일이 아닌 것은?", options:["숙제를 했다","일찍 일어났다","세수를 했다","밥을 먹었다"], correct:0, explain:"글에는 숙제를 했다는 내용이 없습니다."},
+{passage:"강아지가 공을 물고 왔습니다. 나는 강아지와 함께 공놀이를 했습니다. 강아지는 아주 즐거워 보였습니다.", q:"누가 공을 물고 왔나요?", options:["강아지","고양이","나","친구"], correct:0, explain:"글에서 '강아지가 공을 물고 왔습니다'라고 했습니다."},
+{passage:"오늘은 비가 옵니다. 나는 우산을 쓰고 학교에 갑니다.", q:"오늘 날씨는 어떤가요?", options:["비가 온다","눈이 온다","맑다","바람이 분다"], correct:0, explain:"글에서 '오늘은 비가 옵니다'라고 했습니다."}
+],
+2:[
+{passage:"수현이는 도서관에서 책을 세 권 빌렸습니다. 그중 한 권은 동화책이고, 두 권은 그림책이었습니다.", q:"수현이가 빌린 그림책은 몇 권인가요?", options:["두 권","한 권","세 권","네 권"], correct:0, explain:"글에서 '두 권은 그림책'이라고 했습니다."},
+{passage:"오늘 체육 시간에 우리 반은 줄넘기를 했습니다. 나는 오십 번을 넘었고, 짝꿍은 서른 번을 넘었습니다.", q:"내가 넘은 줄넘기 횟수는?", options:["오십 번","서른 번","마흔 번","스무 번"], correct:0, explain:"글에서 '나는 오십 번을 넘었고'라고 했습니다."},
+{passage:"참새는 작은 새입니다. 참새는 곡식이나 벌레를 먹고 삽니다. 참새는 짹짹 소리를 냅니다.", q:"참새가 내는 소리는 무엇인가요?", options:["짹짹","멍멍","야옹","꽥꽥"], correct:0, explain:"글에서 '참새는 짹짹 소리를 냅니다'라고 했습니다."},
+{passage:"영희는 그림 그리기를 좋아합니다. 오늘은 크레파스로 바다를 그렸습니다.", q:"영희가 오늘 그린 것은?", options:["바다","산","하늘의 별","숲"], correct:0, explain:"글에서 '크레파스로 바다를 그렸습니다'라고 했습니다."}
+],
+3:[
+{passage:"우리 학교 텃밭에서는 여러 채소를 기릅니다. 봄에는 상추와 토마토를 심었고, 가을에는 배추를 심었습니다.", q:"가을에 심은 채소는 무엇인가요?", options:["배추","상추","토마토","오이"], correct:0, explain:"글에서 '가을에는 배추를 심었습니다'라고 했습니다."},
+{passage:"철새는 계절에 따라 사는 곳을 옮기는 새입니다. 제비는 봄에 우리나라에 왔다가 가을에 따뜻한 남쪽으로 떠납니다.", q:"제비가 남쪽으로 떠나는 계절은?", options:["가을","봄","여름","겨울"], correct:0, explain:"글에서 '가을에 따뜻한 남쪽으로 떠납니다'라고 했습니다."},
+{passage:"물은 온도에 따라 얼음, 물, 수증기로 모습이 바뀝니다. 물이 얼면 얼음이 되고, 물을 끓이면 수증기가 됩니다.", q:"물을 끓이면 무엇이 되나요?", options:["수증기","얼음","눈","소금"], correct:0, explain:"글에서 '물을 끓이면 수증기가 됩니다'라고 했습니다."},
+{passage:"세종대왕은 백성을 위해 한글을 만들었습니다. 한글은 배우기 쉽고 과학적인 글자입니다.", q:"한글을 만든 사람은 누구인가요?", options:["세종대왕","이순신","유관순","광개토대왕"], correct:0, explain:"글에서 '세종대왕은 한글을 만들었습니다'라고 했습니다."}
+],
+4:[
+{passage:"화산은 땅속 마그마가 지표 밖으로 분출하여 생긴 지형입니다. 화산이 분출하면 용암과 화산재가 나옵니다.", q:"화산이 분출할 때 나오는 것이 아닌 것은?", options:["빙하","용암","화산재","마그마"], correct:0, explain:"글에 빙하에 대한 내용은 없습니다."},
+{passage:"조선 시대에는 신분에 따라 양반, 중인, 상민, 천민으로 나뉘었습니다. 양반은 주로 관리가 되어 나라의 일을 맡았습니다.", q:"조선 시대에 주로 관리가 되었던 신분은?", options:["양반","중인","상민","천민"], correct:0, explain:"글에서 '양반은 주로 관리가 되어'라고 했습니다."},
+{passage:"곤충은 몸이 머리, 가슴, 배 세 부분으로 나뉘고 다리가 여섯 개입니다. 나비와 개미는 대표적인 곤충입니다.", q:"곤충의 다리는 몇 개인가요?", options:["여섯 개","네 개","여덟 개","두 개"], correct:0, explain:"글에서 '다리가 여섯 개'라고 했습니다."},
+{passage:"습지는 물이 항상 고여 있거나 젖어 있는 땅으로, 다양한 동식물이 살아가는 소중한 공간입니다.", q:"습지에 대한 설명으로 알맞은 것은?", options:["다양한 동식물이 사는 곳이다","물이 전혀 없는 곳이다","동식물이 살 수 없다","항상 얼어 있는 곳이다"], correct:0, explain:"글에서 '다양한 동식물이 살아가는 공간'이라고 했습니다."}
+],
+5:[
+{passage:"우리 몸의 혈액은 심장의 펌프 작용으로 온몸을 순환합니다. 혈액은 산소와 영양분을 몸 곳곳에 전달합니다.", q:"혈액을 온몸으로 순환시키는 역할을 하는 기관은?", options:["심장","위","폐","간"], correct:0, explain:"글에서 '심장의 펌프 작용으로 순환합니다'라고 했습니다."},
+{passage:"지구는 태양을 중심으로 일 년에 한 바퀴씩 공전합니다. 이 공전으로 인해 계절이 바뀝니다.", q:"계절이 바뀌는 까닭과 관련 있는 지구의 움직임은?", options:["공전","자전","자율","반사"], correct:0, explain:"글에서 '공전으로 인해 계절이 바뀝니다'라고 했습니다."},
+{passage:"광합성은 식물이 빛과 물, 이산화 탄소를 이용해 양분을 만드는 과정입니다. 이 과정에서 산소가 만들어집니다.", q:"광합성 과정에서 만들어지는 기체는?", options:["산소","질소","수소","이산화 탄소"], correct:0, explain:"글에서 '이 과정에서 산소가 만들어집니다'라고 했습니다."},
+{passage:"민주주의는 국민이 나라의 주인이 되어 정치에 참여하는 제도입니다. 선거는 대표적인 참여 방법입니다.", q:"민주주의에서 국민이 정치에 참여하는 대표적인 방법은?", options:["선거","전쟁","독재","무관심"], correct:0, explain:"글에서 '선거는 대표적인 참여 방법'이라고 했습니다."}
+],
+6:[
+{passage:"경제 활동에서 수요와 공급의 원리는 가격을 결정하는 중요한 요인입니다. 수요가 늘고 공급이 줄면 가격은 오릅니다.", q:"수요는 늘고 공급이 줄어들면 가격은 어떻게 될까요?", options:["오른다","내린다","변화 없다","반으로 준다"], correct:0, explain:"글에서 '수요가 늘고 공급이 줄면 가격은 오릅니다'라고 했습니다."},
+{passage:"헌법은 나라의 최고 법으로, 국민의 권리와 의무, 나라의 조직과 운영 원리를 담고 있습니다.", q:"국민의 권리와 의무를 담고 있는 나라의 최고 법은?", options:["헌법","민법","형법","조례"], correct:0, explain:"글에서 '헌법은 나라의 최고 법'이라고 했습니다."},
+{passage:"지진은 땅속 지각이 갑자기 움직이면서 흔들림이 발생하는 현상입니다. 지진이 발생하면 건물이 흔들리거나 무너질 수 있습니다.", q:"지진이 발생하는 원인으로 알맞은 것은?", options:["지각이 갑자기 움직여서","비가 많이 와서","기온이 높아져서","바람이 세게 불어서"], correct:0, explain:"글에서 '지각이 갑자기 움직이면서'라고 했습니다."},
+{passage:"유엔(UN)은 세계 평화와 안전을 지키기 위해 만들어진 국제기구입니다. 여러 나라가 회원국으로 참여하고 있습니다.", q:"세계 평화와 안전을 위해 만들어진 국제기구는?", options:["유엔(UN)","국회","시청","법원"], correct:0, explain:"글에서 '유엔(UN)은 세계 평화와 안전을 지키기 위해 만들어진 국제기구'라고 했습니다."}
+]
+}}
+};
+const KOREAN_CATEGORY_ORDER=['spelling','vocab','idiom','grammar','reading'];
+
+const GRADE_COLORS={1:'var(--g1)',2:'var(--g2)',3:'var(--g3)',4:'var(--g4)',5:'var(--g5)',6:'var(--g6)'};
+
+/* ========================= 상태 ========================= */
+let state={grade:4, diff:1, scope:'all', wordMode:false};
+let problems=[];
+let currentAttemptSaved=false;
+const HISTORY_KEY='mathQuizHistory';
+
+let examState={grade:4, count:20, minutes:40};
+let examProblems=[];
+let examTimer=null;
+let examSecondsLeft=0;
+let examSubmitted=false;
+
+let koState={grade:4, category:'all'};
+let koProblems=[];
+let koAttemptSaved=false;
+let currentSubject='math';
+
+/* ========================= 기록 저장/불러오기 ========================= */
+function loadHistory(){
+  try{
+    const raw=localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
+}
+function saveHistoryRecord(record){
+  try{
+    const list=loadHistory();
+    list.unshift(record);
+    while(list.length>50) list.pop();
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch(e){ /* 저장 공간이 없거나 localStorage 미지원 시 조용히 무시 */ }
+}
+function formatDate(iso){
+  const d=new Date(iso);
+  const pad=n=>String(n).padStart(2,'0');
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function renderHistory(targetId){
+  targetId = targetId || 'historyContent';
+  const content=document.getElementById(targetId);
+  const list=loadHistory();
+  if(list.length===0){
+    content.innerHTML='<div class="history-empty">아직 채점 기록이 없어요.</div>';
+    return;
+  }
+  const items=list.map(r=>{
+    const isExam = r.mode==='exam';
+    const isKorean = r.subject==='korean';
+    const scopeLabel = r.scope==='all' ? '전체범위' : r.scopeLabel;
+    let midTag;
+    if(isExam) midTag='<span class="h-tag">🏆 '+(r.subject==='korean'?'국어':'수학')+' 모의고사</span>';
+    else if(isKorean) midTag='<span class="h-tag">📖 국어</span>';
+    else midTag='<span class="h-tag">'+diffLabel(r.diff)+'</span>';
+    return '<li class="history-item">'+
+      '<div class="h-tags">'+
+        '<span class="h-tag">'+r.grade+'학년</span>'+
+        midTag+
+        (isExam ? '' : '<span class="h-tag">'+scopeLabel+'</span>')+
+      '</div>'+
+      '<div class="h-score">'+r.correct+' / '+r.total+'</div>'+
+      '<div class="h-date">'+formatDate(r.date)+'</div>'+
+    '</li>';
+  }).join('');
+  content.innerHTML='<ul class="history-list">'+items+'</ul><button class="history-clear" id="clearHistoryBtn_'+targetId+'">기록 전체 지우기</button>';
+  const clearBtn=document.getElementById('clearHistoryBtn_'+targetId);
+  if(clearBtn){
+    clearBtn.addEventListener('click', ()=>{
+      if(confirm('지난 기록을 모두 지울까요?')){
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory(targetId);
+      }
+    });
+  }
+}
+
+/* ========================= 초기화 ========================= */
+function initGradeRow(){
+  const row=document.getElementById('gradeRow');
+  row.innerHTML='';
+  for(let g=1; g<=6; g++){
+    const btn=document.createElement('button');
+    btn.className='grade-btn'+(g===state.grade?' selected':'');
+    btn.dataset.g=g;
+    btn.innerHTML='<span class="tip"></span>'+g+'학년';
+    btn.addEventListener('click', ()=>{
+      state.grade=g;
+      document.querySelectorAll('.grade-btn').forEach(b=>b.classList.toggle('selected', Number(b.dataset.g)===g));
+      document.documentElement.style.setProperty('--grade-color', GRADE_COLORS[g]);
+      populateScopeSelect();
+    });
+    row.appendChild(btn);
+  }
+  document.documentElement.style.setProperty('--grade-color', GRADE_COLORS[state.grade]);
+}
+
+function initDiffRow(){
+  document.querySelectorAll('#diffRow .pill').forEach(btn=>{
+    if(Number(btn.dataset.d)===state.diff) btn.classList.add('selected');
+    btn.addEventListener('click', ()=>{
+      state.diff=Number(btn.dataset.d);
+      document.querySelectorAll('#diffRow .pill').forEach(b=>b.classList.toggle('selected', b===btn));
+    });
+  });
+}
+
+function initExamGradeRow(){
+  const row=document.getElementById('examGradeRow');
+  row.innerHTML='';
+  for(let g=1; g<=6; g++){
+    const btn=document.createElement('button');
+    btn.className='grade-btn'+(g===examState.grade?' selected':'');
+    btn.dataset.g=g;
+    btn.innerHTML='<span class="tip"></span>'+g+'학년';
+    btn.addEventListener('click', ()=>{
+      examState.grade=g;
+      document.querySelectorAll('#examGradeRow .grade-btn').forEach(b=>b.classList.toggle('selected', Number(b.dataset.g)===g));
+    });
+    row.appendChild(btn);
+  }
+}
+function initExamPillRows(){
+  document.querySelectorAll('#examCountRow .pill').forEach(btn=>{
+    if(Number(btn.dataset.c)===examState.count) btn.classList.add('selected');
+    btn.addEventListener('click', ()=>{
+      examState.count=Number(btn.dataset.c);
+      document.querySelectorAll('#examCountRow .pill').forEach(b=>b.classList.toggle('selected', b===btn));
+    });
+  });
+  document.querySelectorAll('#examTimeRow .pill').forEach(btn=>{
+    if(Number(btn.dataset.t)===examState.minutes) btn.classList.add('selected');
+    btn.addEventListener('click', ()=>{
+      examState.minutes=Number(btn.dataset.t);
+      document.querySelectorAll('#examTimeRow .pill').forEach(b=>b.classList.toggle('selected', b===btn));
+    });
+  });
+}
+
+function populateScopeSelect(){
+  const sel=document.getElementById('scopeSelect');
+  const available=TOPICS.filter(t=>t.grades.includes(state.grade));
+  const prev=state.scope;
+  sel.innerHTML='';
+  const allOpt=document.createElement('option');
+  allOpt.value='all'; allOpt.textContent='전체범위 (골고루 출제)';
+  sel.appendChild(allOpt);
+  available.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.id; opt.textContent=t.label;
+    sel.appendChild(opt);
+  });
+  const stillValid = prev==='all' || available.some(t=>t.id===prev);
+  sel.value = stillValid ? prev : 'all';
+  state.scope = sel.value;
+  sel.onchange=()=>{ state.scope=sel.value; };
+}
+
+function initKoGradeRow(){
+  const row=document.getElementById('koGradeRow');
+  row.innerHTML='';
+  for(let g=1; g<=6; g++){
+    const btn=document.createElement('button');
+    btn.className='grade-btn'+(g===koState.grade?' selected':'');
+    btn.dataset.g=g;
+    btn.innerHTML='<span class="tip"></span>'+g+'학년';
+    btn.addEventListener('click', ()=>{
+      koState.grade=g;
+      document.querySelectorAll('#koGradeRow .grade-btn').forEach(b=>b.classList.toggle('selected', Number(b.dataset.g)===g));
+    });
+    row.appendChild(btn);
+  }
+}
+function populateKoScopeSelect(){
+  const sel=document.getElementById('koScopeSelect');
+  sel.innerHTML='';
+  const allOpt=document.createElement('option');
+  allOpt.value='all'; allOpt.textContent='전체 유형 (골고루 출제)';
+  sel.appendChild(allOpt);
+  KOREAN_CATEGORY_ORDER.forEach(catId=>{
+    const opt=document.createElement('option');
+    opt.value=catId; opt.textContent=KOREAN_BANK[catId].label;
+    sel.appendChild(opt);
+  });
+  sel.value=koState.category;
+  sel.onchange=()=>{ koState.category=sel.value; };
+}
+
+function generateProblem(grade,diff,scope,opts){
+  const available=TOPICS.filter(t=>t.grades.includes(grade));
+  let topic;
+  if(scope==='all') topic=available[randInt(0,available.length-1)];
+  else topic = TOPICS.find(t=>t.id===scope) || available[randInt(0,available.length-1)];
+  return topic.generate(grade,diff,opts);
+}
+
+/* ========================= 국어 문제 생성 ========================= */
+function generateKoreanProblem(grade, category){
+  const cat = category==='all' ? KOREAN_CATEGORY_ORDER[randInt(0,KOREAN_CATEGORY_ORDER.length-1)] : category;
+  const bank = KOREAN_BANK[cat];
+  const items = bank.items[grade] || [];
+  if(items.length===0) return null;
+  const item = items[randInt(0,items.length-1)];
+  return {
+    topic: bank.label,
+    question: item.q,
+    passage: item.passage,
+    answerType: 'choice',
+    options: item.options,
+    correct: item.correct,
+    unit: '',
+    steps: [item.explain]
+  };
+}
+
+function buildWorksheet(){
+  problems=[];
+  currentAttemptSaved=false;
+  const opts={word: state.wordMode};
+  for(let i=0;i<10;i++) problems.push(generateProblem(state.grade, state.diff, state.scope, opts));
+  renderWorksheet();
+}
+
+function buildAnswerHtml(p, i){
+  if(p.answerType==='number'){
+    return '<div class="answer-row"><input type="number" step="any" class="ans-main" placeholder="답"><span class="lab">'+(p.unit||'')+'</span></div>';
+  } else if(p.answerType==='division'){
+    return '<div class="answer-row"><span class="lab">몫</span><input type="number" class="ans-q" placeholder="몫"><span class="sep">...</span><span class="lab">나머지</span><input type="number" class="ans-r" placeholder="나머지"></div>';
+  } else if(p.answerType==='fraction'){
+    return '<div class="answer-row"><input type="number" class="ans-num" placeholder="분자"><span class="sep">/</span><input type="number" class="ans-den" placeholder="분모"></div>';
+  } else if(p.answerType==='ratio'){
+    return '<div class="answer-row"><input type="number" class="ans-a" placeholder="앞"><span class="sep">:</span><input type="number" class="ans-b" placeholder="뒤"></div>';
+  } else if(p.answerType==='choice'){
+    const opts=p.options.map((opt,idx)=>
+      '<label class="choice-opt"><input type="radio" name="choice-'+i+'" value="'+idx+'"> <span>'+opt+'</span></label>'
+    ).join('');
+    return '<div class="choice-row">'+opts+'</div>';
+  }
+  return '';
+}
+
+function createProblemCardElement(p, i){
+  const card=document.createElement('div');
+  card.className='problem-card';
+  card.dataset.index=i;
+  const answerHtml=buildAnswerHtml(p, i);
+  const wordTag = p.isWord ? '<span class="word-tag">문장제</span>' : '';
+  const passageHtml = p.passage ? '<div class="passage-box">'+p.passage+'</div>' : '';
+
+  card.innerHTML =
+    '<div class="stamp"></div>'+
+    '<div class="p-head"><div class="p-num">'+(i+1)+'</div><div class="p-topic">'+p.topic+'</div>'+wordTag+'</div>'+
+    passageHtml+
+    '<div class="p-question">'+p.question+'</div>'+
+    answerHtml+
+    '<button class="step-toggle hidden">풀이 보기 ▾</button>'+
+    '<div class="steps hidden">'+p.steps.map(s=>'<div>'+s+'</div>').join('')+'</div>';
+
+  card.querySelector('.step-toggle').addEventListener('click', (e)=>{
+    const stepsEl=card.querySelector('.steps');
+    const nowHidden = stepsEl.classList.toggle('hidden');
+    e.target.textContent = nowHidden ? '풀이 보기 ▾' : '풀이 숨기기 ▴';
+  });
+
+  return card;
+}
+
+/* 답 추출 및 채점 (연습/모의고사/국어 공용) */
+function extractValuesFromCard(p, card){
+  if(p.answerType==='number') return {main: parseFloat(card.querySelector('.ans-main').value)};
+  if(p.answerType==='division') return {q: parseInt(card.querySelector('.ans-q').value,10), r: parseInt(card.querySelector('.ans-r').value,10)};
+  if(p.answerType==='fraction') return {num: parseInt(card.querySelector('.ans-num').value,10), den: parseInt(card.querySelector('.ans-den').value,10)};
+  if(p.answerType==='ratio') return {a: parseInt(card.querySelector('.ans-a').value,10), b: parseInt(card.querySelector('.ans-b').value,10)};
+  if(p.answerType==='choice'){
+    const checked=card.querySelector('.choice-row input[type=radio]:checked');
+    return {choice: checked ? parseInt(checked.value,10) : null};
+  }
+  return {};
+}
+function evaluateAnswerValues(p, v){
+  if(p.answerType==='number'){
+    return v.main!==undefined && !isNaN(v.main) && Math.abs(v.main-p.correct) < 0.01;
+  } else if(p.answerType==='division'){
+    return v.q===p.correct.q && (v.r===p.correct.r || (isNaN(v.r) && p.correct.r===0));
+  } else if(p.answerType==='fraction'){
+    return v.num===p.correct.num && v.den===p.correct.den;
+  } else if(p.answerType==='ratio'){
+    return v.a===p.correct.a && v.b===p.correct.b;
+  } else if(p.answerType==='choice'){
+    return v.choice!==null && v.choice===p.correct;
+  }
+  return false;
+}
+function evaluateAnswer(p, card){
+  return evaluateAnswerValues(p, extractValuesFromCard(p, card));
+}
+function formatCorrectAnswer(p){
+  if(p.answerType==='number') return p.correct+(p.unit||'');
+  if(p.answerType==='division') return '몫 '+p.correct.q+', 나머지 '+p.correct.r;
+  if(p.answerType==='fraction') return p.correct.num+'/'+p.correct.den;
+  if(p.answerType==='ratio') return p.correct.a+' : '+p.correct.b;
+  if(p.answerType==='choice') return p.options[p.correct];
+  return '';
+}
+function diffLabel(d){return d===1?'하':d===2?'중':'상';}
+
+function renderWorksheet(){
+  document.getElementById('settingsScreen').classList.add('hidden');
+  document.getElementById('worksheetScreen').classList.remove('hidden');
+  document.getElementById('footerBar').classList.remove('hidden');
+
+  const tags=document.getElementById('summaryTags');
+  const scopeLabel = state.scope==='all' ? '전체범위' : (TOPICS.find(t=>t.id===state.scope)||{}).label;
+  tags.innerHTML =
+    '<span class="tag">'+state.grade+'학년</span>'+
+    '<span class="tag">난이도 '+diffLabel(state.diff)+'</span>'+
+    '<span class="tag">'+scopeLabel+'</span>';
+
+  const grid=document.getElementById('problemGrid');
+  grid.innerHTML='';
+  problems.forEach((p,i)=>{
+    grid.appendChild(createProblemCardElement(p,i));
+  });
+
+  updateScoreLabel(null);
+}
+
+function checkAnswers(){
+  let correctCount=0;
+  const cards=document.querySelectorAll('#problemGrid .problem-card');
+  cards.forEach(card=>{
+    const i=Number(card.dataset.index);
+    const p=problems[i];
+    const isCorrect=evaluateAnswer(p,card);
+
+    card.classList.add('graded');
+    card.classList.remove('correct','incorrect');
+    card.classList.add(isCorrect?'correct':'incorrect');
+    const stamp=card.querySelector('.stamp');
+    stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
+    card.querySelector('.step-toggle').classList.remove('hidden');
+    if(isCorrect) correctCount++;
+  });
+  updateScoreLabel(correctCount);
+
+  if(!currentAttemptSaved){
+    const scopeLabel = state.scope==='all' ? '전체범위' : (TOPICS.find(t=>t.id===state.scope)||{}).label;
+    saveHistoryRecord({
+      date: new Date().toISOString(),
+      subject: 'math',
+      grade: state.grade,
+      diff: state.diff,
+      scope: state.scope,
+      scopeLabel: scopeLabel,
+      correct: correctCount,
+      total: problems.length,
+      mode: 'practice'
+    });
+    currentAttemptSaved=true;
+  }
+}
+
+function updateScoreLabel(correctCount){
+  const el=document.getElementById('scoreLabel');
+  if(correctCount===null){ el.textContent='아직 채점 전이에요'; return; }
+  let msg = '10문제 중 '+correctCount+'개 정답!';
+  if(correctCount===10) msg += ' 🎉 완벽해요!';
+  else if(correctCount>=7) msg += ' 잘했어요!';
+  else if(correctCount>=4) msg += ' 조금 더 힘내요!';
+  else msg += ' 풀이를 다시 살펴봐요.';
+  el.textContent=msg;
+}
+
+/* ========================= 국어 문제지/채점 ========================= */
+function buildKoreanWorksheet(){
+  koProblems=[];
+  koAttemptSaved=false;
+  for(let i=0;i<10;i++){
+    const p=generateKoreanProblem(koState.grade, koState.category);
+    if(p) koProblems.push(p);
+  }
+  renderKoreanWorksheet();
+}
+
+function renderKoreanWorksheet(){
+  document.getElementById('koSettingsScreen').classList.add('hidden');
+  document.getElementById('koWorksheetScreen').classList.remove('hidden');
+  document.getElementById('footerBar').classList.remove('hidden');
+  document.getElementById('scoreLabel').textContent='아직 채점 전이에요';
+
+  const catLabel = koState.category==='all' ? '전체 유형' : KOREAN_BANK[koState.category].label;
+  document.getElementById('koSummaryTags').innerHTML =
+    '<span class="tag">'+koState.grade+'학년</span>'+
+    '<span class="tag">국어</span>'+
+    '<span class="tag">'+catLabel+'</span>';
+
+  const grid=document.getElementById('koProblemGrid');
+  grid.innerHTML='';
+  koProblems.forEach((p,i)=>{
+    grid.appendChild(createProblemCardElement(p,i));
+  });
+}
+
+function koCheckAnswers(){
+  let correctCount=0;
+  const cards=document.querySelectorAll('#koProblemGrid .problem-card');
+  cards.forEach(card=>{
+    const i=Number(card.dataset.index);
+    const p=koProblems[i];
+    const isCorrect=evaluateAnswer(p,card);
+
+    card.classList.add('graded');
+    card.classList.remove('correct','incorrect');
+    card.classList.add(isCorrect?'correct':'incorrect');
+    const stamp=card.querySelector('.stamp');
+    stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
+    card.querySelector('.step-toggle').classList.remove('hidden');
+    if(isCorrect) correctCount++;
+  });
+  updateScoreLabel(correctCount);
+
+  if(!koAttemptSaved){
+    const scopeLabel = koState.category==='all' ? '전체범위' : KOREAN_BANK[koState.category].label;
+    saveHistoryRecord({
+      date: new Date().toISOString(),
+      subject: 'korean',
+      grade: koState.grade,
+      scope: koState.category,
+      scopeLabel: scopeLabel,
+      correct: correctCount,
+      total: koProblems.length,
+      mode: 'practice'
+    });
+    koAttemptSaved=true;
+  }
+}
+
+/* ========================= 과목/모드 전환 (공용) ========================= */
+let currentMode='practice';
+
+function updateTopLevelView(){
+  const isKorean = currentSubject==='korean';
+  const isExam = currentMode==='exam';
+
+  document.getElementById('subjectMathTab').classList.toggle('selected', !isKorean);
+  document.getElementById('subjectKoreanTab').classList.toggle('selected', isKorean);
+  document.getElementById('tabPractice').classList.toggle('selected', !isExam);
+  document.getElementById('tabExam').classList.toggle('selected', isExam);
+
+  document.getElementById('mathSection').classList.toggle('hidden', isKorean || isExam);
+  document.getElementById('koreanSection').classList.toggle('hidden', !isKorean || isExam);
+
+  document.getElementById('settingsScreen').classList.add('hidden');
+  document.getElementById('worksheetScreen').classList.add('hidden');
+  document.getElementById('koSettingsScreen').classList.add('hidden');
+  document.getElementById('koWorksheetScreen').classList.add('hidden');
+  document.getElementById('examSettingsScreen').classList.add('hidden');
+  document.getElementById('examRunScreen').classList.add('hidden');
+  document.getElementById('examResultScreen').classList.add('hidden');
+  document.getElementById('footerBar').classList.add('hidden');
+  document.getElementById('examFooterBar').classList.add('hidden');
+
+  if(isExam){
+    document.getElementById('examSettingsScreen').classList.remove('hidden');
+    updateExamSettingsText();
+  } else if(isKorean){
+    document.getElementById('koSettingsScreen').classList.remove('hidden');
+  } else {
+    document.getElementById('settingsScreen').classList.remove('hidden');
+  }
+
+  document.getElementById('headerSub').textContent = isExam
+    ? (isKorean ? '국어 모의고사에 도전해 보세요' : '수학 모의고사에 도전해 보세요')
+    : (isKorean ? '학년과 문제 유형을 골라서 나만의 국어 문제지를 만들어 보세요' : '학년, 난이도, 범위를 골라서 나만의 수학 문제지를 만들어 보세요');
+}
+
+function updateExamSettingsText(){
+  const note=document.getElementById('examNoteText');
+  const startBtn=document.getElementById('examStartBtn');
+  if(currentSubject==='korean'){
+    note.textContent='※ 국어 모의고사는 맞춤법·어휘·속담/사자성어·문법·독해가 골고루 섞여 출제됩니다. 제한 시간이 끝나면 자동으로 제출됩니다.';
+    startBtn.textContent='국어 모의고사 시작 →';
+  } else {
+    note.textContent='※ 모의고사는 기초학력 진단 수준(난이도 하)으로 출제되며, 단답형과 문장제가 섞여 나옵니다. 제한 시간이 끝나면 자동으로 제출됩니다.';
+    startBtn.textContent='모의고사 시작 →';
+  }
+}
+
+function switchSubject(subject){
+  currentSubject=subject;
+  if(currentMode==='exam') currentMode='practice';
+  updateTopLevelView();
+}
+
+function switchMode(mode){
+  currentMode=mode;
+  updateTopLevelView();
+}
+
+function buildExamProblems(){
+  if(currentSubject==='korean') return buildKoreanExamProblems();
+  return buildMathExamProblems();
+}
+
+function buildMathExamProblems(){
+  const available=TOPICS.filter(t=>t.grades.includes(examState.grade));
+  // 단원별로 고르게 섞이도록 토픽을 순환하며 배정한 뒤 섞음
+  const assignedTopics=[];
+  for(let i=0;i<examState.count;i++) assignedTopics.push(available[i%available.length]);
+  for(let i=assignedTopics.length-1;i>0;i--){
+    const j=randInt(0,i);
+    const t=assignedTopics[i]; assignedTopics[i]=assignedTopics[j]; assignedTopics[j]=t;
+  }
+  const opts={word:true};
+  return assignedTopics.map(t=>t.generate(examState.grade,1,opts));
+}
+
+function buildKoreanExamProblems(){
+  const assignedCats=[];
+  for(let i=0;i<examState.count;i++) assignedCats.push(KOREAN_CATEGORY_ORDER[i%KOREAN_CATEGORY_ORDER.length]);
+  for(let i=assignedCats.length-1;i>0;i--){
+    const j=randInt(0,i);
+    const t=assignedCats[i]; assignedCats[i]=assignedCats[j]; assignedCats[j]=t;
+  }
+  const results=[];
+  assignedCats.forEach(cat=>{
+    const p=generateKoreanProblem(examState.grade, cat);
+    if(p) results.push(p);
+  });
+  while(results.length<examState.count){
+    const p=generateKoreanProblem(examState.grade, 'all');
+    if(p) results.push(p); else break;
+  }
+  return results;
+}
+
+function buildExam(){
+  examProblems=buildExamProblems();
+  examSubmitted=false;
+  renderExamRun();
+  startExamTimer();
+}
+
+function renderExamRun(){
+  switchMode('exam');
+  document.getElementById('examSettingsScreen').classList.add('hidden');
+  document.getElementById('examRunScreen').classList.remove('hidden');
+  document.getElementById('examFooterBar').classList.remove('hidden');
+  document.getElementById('examFooterBar').classList.remove('exam-time-low');
+
+  document.getElementById('examSummaryTags').innerHTML =
+    '<span class="tag">'+examState.grade+'학년</span>'+
+    '<span class="tag">'+(currentSubject==='korean'?'국어':'수학')+' 모의고사</span>'+
+    '<span class="tag">'+examProblems.length+'문항</span>'+
+    '<span class="tag">'+examState.minutes+'분</span>';
+
+  const grid=document.getElementById('examProblemGrid');
+  grid.innerHTML='';
+  examProblems.forEach((p,i)=>{
+    grid.appendChild(createProblemCardElement(p,i));
+  });
+  const submitBtn=document.getElementById('examSubmitBtn');
+  submitBtn.disabled=false;
+}
+
+function startExamTimer(){
+  if(examTimer) clearInterval(examTimer);
+  examSecondsLeft=examState.minutes*60;
+  updateExamTimerDisplay();
+  examTimer=setInterval(()=>{
+    examSecondsLeft--;
+    updateExamTimerDisplay();
+    if(examSecondsLeft<=0){
+      clearInterval(examTimer);
+      gradeExam(true);
+    }
+  },1000);
+}
+function updateExamTimerDisplay(){
+  const m=Math.floor(Math.max(0,examSecondsLeft)/60), s=Math.max(0,examSecondsLeft)%60;
+  const el=document.getElementById('examTimerLabel');
+  if(el) el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  document.getElementById('examFooterBar').classList.toggle('exam-time-low', examSecondsLeft<=60);
+}
+
+function gradeExam(isAuto){
+  if(examSubmitted) return;
+  examSubmitted=true;
+  if(examTimer){ clearInterval(examTimer); examTimer=null; }
+
+  let correctCount=0;
+  const topicStats={};
+  const wrongList=[];
+  const cards=document.querySelectorAll('#examProblemGrid .problem-card');
+  cards.forEach(card=>{
+    const i=Number(card.dataset.index);
+    const p=examProblems[i];
+    const isCorrect=evaluateAnswer(p,card);
+
+    card.classList.add('graded');
+    card.classList.add(isCorrect?'correct':'incorrect');
+    const stamp=card.querySelector('.stamp');
+    stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
+    card.querySelector('.step-toggle').classList.remove('hidden');
+
+    if(!topicStats[p.topic]) topicStats[p.topic]={correct:0,total:0};
+    topicStats[p.topic].total++;
+    if(isCorrect){ correctCount++; topicStats[p.topic].correct++; }
+    else wrongList.push({question:p.question, correctText:formatCorrectAnswer(p)});
+  });
+
+  showExamResult(correctCount, examProblems.length, topicStats, wrongList, isAuto);
+
+  saveHistoryRecord({
+    date:new Date().toISOString(),
+    subject: currentSubject,
+    grade:examState.grade,
+    diff:1,
+    scope:'exam',
+    scopeLabel:'모의고사',
+    correct:correctCount,
+    total:examProblems.length,
+    mode:'exam'
+  });
+}
+
+function showExamResult(correct,total,topicStats,wrongList,isAuto){
+  document.getElementById('examRunScreen').classList.add('hidden');
+  document.getElementById('examFooterBar').classList.add('hidden');
+  document.getElementById('examResultScreen').classList.remove('hidden');
+
+  const pct = Math.round((correct/total)*100);
+  const summaryEl=document.getElementById('examResultSummary');
+  summaryEl.innerHTML =
+    '<h2><span class="idx">★</span> 모의고사 결과</h2>'+
+    '<div class="result-score-big">'+correct+' / '+total+' ('+pct+'점)</div>'+
+    '<div class="result-sub">'+(isAuto ? '⏰ 시간이 종료되어 자동 제출되었습니다.' : '제출이 완료되었습니다.')+'</div>';
+
+  const topicsEl=document.getElementById('examResultTopics');
+  let topicsHtml='<h2><span class="idx">📊</span> 단원별 정답률</h2>';
+  Object.keys(topicStats).forEach(label=>{
+    const st=topicStats[label];
+    const p=Math.round((st.correct/st.total)*100);
+    topicsHtml+='<div class="topic-stat-row"><div class="t-label">'+label+'</div>'+
+      '<div class="t-bar-bg"><div class="t-bar-fill" style="width:'+p+'%"></div></div>'+
+      '<div class="t-frac">'+st.correct+'/'+st.total+'</div></div>';
+  });
+  topicsEl.innerHTML=topicsHtml;
+
+  const wrongEl=document.getElementById('examResultWrong');
+  let wrongHtml='<h2><span class="idx">✕</span> 틀린 문제 모아보기</h2>';
+  if(wrongList.length===0){
+    wrongHtml+='<div class="wrong-empty">틀린 문제가 없어요! 🎉</div>';
+  } else {
+    wrongList.forEach(w=>{
+      wrongHtml+='<div class="wrong-item"><div class="wq">'+w.question+'</div><div class="wa">정답: '+w.correctText+'</div></div>';
+    });
+  }
+  wrongEl.innerHTML=wrongHtml;
+}
+
+/* ========================= 이벤트 바인딩 ========================= */
+document.getElementById('generateBtn').addEventListener('click', buildWorksheet);
+document.getElementById('regenBtn').addEventListener('click', buildWorksheet);
+document.getElementById('backBtn').addEventListener('click', ()=>{
+  document.getElementById('worksheetScreen').classList.add('hidden');
+  document.getElementById('footerBar').classList.add('hidden');
+  document.getElementById('settingsScreen').classList.remove('hidden');
+});
+document.getElementById('checkBtn').addEventListener('click', ()=>{
+  if(currentSubject==='korean') koCheckAnswers();
+  else checkAnswers();
+});
+document.getElementById('wordModeCheck').addEventListener('change', (e)=>{
+  state.wordMode = e.target.checked;
+});
+document.getElementById('historyToggle').addEventListener('click', ()=>{
+  const panel=document.getElementById('historyPanel');
+  const nowHidden=panel.classList.toggle('hidden');
+  document.getElementById('historyToggle').textContent = nowHidden ? '📋 지난 기록 보기' : '📋 지난 기록 숨기기';
+  if(!nowHidden) renderHistory();
+});
+
+document.getElementById('tabPractice').addEventListener('click', ()=>switchMode('practice'));
+document.getElementById('tabExam').addEventListener('click', ()=>switchMode('exam'));
+document.getElementById('examStartBtn').addEventListener('click', buildExam);
+document.getElementById('examSubmitBtn').addEventListener('click', ()=>{
+  if(confirm('지금 제출할까요? 제출 후에는 답을 바꿀 수 없어요.')) gradeExam(false);
+});
+document.getElementById('examBackBtn').addEventListener('click', ()=>{
+  if(confirm('모의고사를 그만두고 설정으로 돌아갈까요? 진행 상황은 저장되지 않아요.')){
+    if(examTimer){ clearInterval(examTimer); examTimer=null; }
+    switchMode('practice');
+  }
+});
+document.getElementById('examRetryBtn').addEventListener('click', buildExam);
+document.getElementById('examBackFromResultBtn').addEventListener('click', ()=>switchMode('practice'));
+
+document.getElementById('subjectMathTab').addEventListener('click', ()=>switchSubject('math'));
+document.getElementById('subjectKoreanTab').addEventListener('click', ()=>switchSubject('korean'));
+document.getElementById('koGenerateBtn').addEventListener('click', buildKoreanWorksheet);
+document.getElementById('koRegenBtn').addEventListener('click', buildKoreanWorksheet);
+document.getElementById('koBackBtn').addEventListener('click', ()=>{
+  document.getElementById('koWorksheetScreen').classList.add('hidden');
+  document.getElementById('footerBar').classList.add('hidden');
+  document.getElementById('koSettingsScreen').classList.remove('hidden');
+});
+document.getElementById('koHistoryToggle').addEventListener('click', ()=>{
+  const panel=document.getElementById('koHistoryPanel');
+  const nowHidden=panel.classList.toggle('hidden');
+  document.getElementById('koHistoryToggle').textContent = nowHidden ? '📋 지난 기록 보기' : '📋 지난 기록 숨기기';
+  if(!nowHidden) renderHistory('koHistoryContent');
+});
+
+initGradeRow();
+initDiffRow();
+populateScopeSelect();
+initExamGradeRow();
+initExamPillRows();
+initKoGradeRow();
+populateKoScopeSelect();
+updateTopLevelView();
+</script>
+</body>
+</html>
