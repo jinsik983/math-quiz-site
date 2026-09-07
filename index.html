@@ -219,6 +219,26 @@ select#scopeSelect{
 }
 .generate-btn:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,0.15);}
 
+.wrongnote-btn{
+  display:block; width:100%;
+  margin-top:12px;
+  background:#fff;
+  color:var(--incorrect);
+  border:2px solid var(--incorrect);
+  border-radius:16px;
+  padding:14px;
+  font-family:'Gaegu', cursive;
+  font-size:20px;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .1s ease;
+}
+.wrongnote-btn:active{transform:translateY(2px);}
+.wrongnote-btn:disabled{
+  color:var(--ink-soft); border-color:#E4E8F2; cursor:default;
+}
+.wrongnote-btn:disabled:active{transform:none;}
+
 .history-link{
   display:block; text-align:center; margin-top:14px;
   background:none; border:none; color:var(--ink-soft);
@@ -471,6 +491,7 @@ select#scopeSelect{
     </div>
 
     <button class="generate-btn" id="generateBtn">문제지 만들기 →</button>
+    <button class="wrongnote-btn" id="mathWrongNoteBtn">📕 오답 노트</button>
     <button class="history-link" id="historyToggle">📋 지난 기록 보기</button>
     <div class="panel history-panel hidden" id="historyPanel">
       <h2><span class="idx">★</span> 지난 기록</h2>
@@ -504,6 +525,7 @@ select#scopeSelect{
         <select id="koScopeSelect"></select>
       </div>
       <button class="generate-btn" id="koGenerateBtn">문제지 만들기 →</button>
+      <button class="wrongnote-btn" id="koWrongNoteBtn">📕 오답 노트</button>
       <button class="history-link" id="koHistoryToggle">📋 지난 기록 보기</button>
       <div class="panel history-panel hidden" id="koHistoryPanel">
         <h2><span class="idx">★</span> 지난 기록</h2>
@@ -536,6 +558,7 @@ select#scopeSelect{
         <select id="enScopeSelect"></select>
       </div>
       <button class="generate-btn" id="enGenerateBtn">문제지 만들기 →</button>
+      <button class="wrongnote-btn" id="enWrongNoteBtn">📕 오답 노트</button>
       <button class="history-link" id="enHistoryToggle">📋 지난 기록 보기</button>
       <div class="panel history-panel hidden" id="enHistoryPanel">
         <h2><span class="idx">★</span> 지난 기록</h2>
@@ -1452,6 +1475,8 @@ let state={grade:4, diff:1, scope:'all', wordMode:false};
 let problems=[];
 let currentAttemptSaved=false;
 const HISTORY_KEY='mathQuizHistory';
+const WRONG_KEY='mathQuizWrongNotes';
+let reviewMode=false;   // 오답 노트를 다시 푸는 중인지
 
 let examState={grade:4, count:20, minutes:40};
 let examProblems=[];
@@ -1488,6 +1513,67 @@ function formatDate(iso){
   const pad=n=>String(n).padStart(2,'0');
   return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
 }
+
+/* ========================= 오답 노트 =========================
+   틀린 문제를 통째로 저장해 두었다가 다시 풀 수 있게 한다.
+   다시 풀어서 맞히면 노트에서 빠지고, 또 틀리면 wrongCount가 올라간다. */
+function wrongKeyOf(subject, p){
+  return subject+'|'+(p.passage||'')+'|'+p.question+'|'+(p.options ? p.options.join('~') : '');
+}
+function loadWrongNotes(){
+  try{
+    const raw=localStorage.getItem(WRONG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
+}
+function saveWrongNotes(list){
+  try{
+    localStorage.setItem(WRONG_KEY, JSON.stringify(list));
+  } catch(e){ /* 저장 공간이 없거나 localStorage 미지원 시 조용히 무시 */ }
+}
+function countWrongNotes(subject){
+  return loadWrongNotes().filter(n=>n.subject===subject).length;
+}
+function recordWrongProblems(subject, grade, wrongProblems){
+  if(!wrongProblems.length) return;
+  const list=loadWrongNotes();
+  const now=new Date().toISOString();
+  wrongProblems.forEach(p=>{
+    const id=wrongKeyOf(subject,p);
+    const found=list.find(n=>n.id===id);
+    if(found){
+      found.wrongCount++;
+      found.lastWrongAt=now;
+      found.grade=grade;
+    } else {
+      list.unshift({id, subject, grade, problem:p, wrongCount:1, lastWrongAt:now});
+    }
+  });
+  // 오래된 것부터 정리해 최대 100문항까지만 보관
+  list.sort((a,b)=> a.lastWrongAt < b.lastWrongAt ? 1 : -1);
+  saveWrongNotes(list.slice(0,100));
+}
+function removeWrongProblem(subject, p){
+  const id=wrongKeyOf(subject,p);
+  saveWrongNotes(loadWrongNotes().filter(n=>n.id!==id));
+}
+/* 많이 틀린 문제부터, 같으면 최근에 틀린 문제부터 최대 10문항 */
+function takeWrongProblems(subject){
+  return loadWrongNotes()
+    .filter(n=>n.subject===subject)
+    .sort((a,b)=> b.wrongCount-a.wrongCount || (a.lastWrongAt < b.lastWrongAt ? 1 : -1))
+    .slice(0,10)
+    .map(n=>n.problem);
+}
+function updateWrongNoteButtons(){
+  [['math','mathWrongNoteBtn'],['korean','koWrongNoteBtn'],['english','enWrongNoteBtn']].forEach(([subj,id])=>{
+    const btn=document.getElementById(id);
+    if(!btn) return;
+    const n=countWrongNotes(subj);
+    btn.textContent = n===0 ? '📕 오답 노트 (아직 없어요)' : '📕 오답 노트 다시 풀기 ('+n+'문제)';
+    btn.disabled = n===0;
+  });
+}
 function renderHistory(targetId){
   targetId = targetId || 'historyContent';
   const content=document.getElementById(targetId);
@@ -1503,6 +1589,7 @@ function renderHistory(targetId){
     const scopeLabel = r.scope==='all' ? '전체범위' : r.scopeLabel;
     let midTag;
     if(isExam) midTag='<span class="h-tag">🏆 '+(r.subject==='korean'?'국어':r.subject==='english'?'영어':'수학')+' 모의고사</span>';
+    else if(r.mode==='review') midTag='<span class="h-tag">📕 '+(isKorean?'국어':isEnglish?'영어':'수학')+' 오답</span>';
     else if(isKorean) midTag='<span class="h-tag">📖 국어</span>';
     else if(isEnglish) midTag='<span class="h-tag">🔤 영어</span>';
     else midTag='<span class="h-tag">'+diffLabel(r.diff)+'</span>';
@@ -1735,6 +1822,7 @@ function generateEnglishProblem(grade, category, used){
 
 function buildWorksheet(){
   problems=[];
+  reviewMode=false;
   currentAttemptSaved=false;
   const opts={word: state.wordMode};
   for(let i=0;i<10;i++) problems.push(generateProblem(state.grade, state.diff, state.scope, opts));
@@ -1831,10 +1919,12 @@ function renderWorksheet(){
 
   const tags=document.getElementById('summaryTags');
   const scopeLabel = state.scope==='all' ? '전체범위' : (TOPICS.find(t=>t.id===state.scope)||{}).label;
-  tags.innerHTML =
-    '<span class="tag">'+state.grade+'학년</span>'+
-    '<span class="tag">난이도 '+diffLabel(state.diff)+'</span>'+
-    '<span class="tag">'+scopeLabel+'</span>';
+  tags.innerHTML = reviewMode
+    ? '<span class="tag">📕 오답 노트</span><span class="tag">'+problems.length+'문제</span>'
+    : '<span class="tag">'+state.grade+'학년</span>'+
+      '<span class="tag">난이도 '+diffLabel(state.diff)+'</span>'+
+      '<span class="tag">'+scopeLabel+'</span>';
+  document.getElementById('regenBtn').classList.toggle('hidden', reviewMode);
 
   const grid=document.getElementById('problemGrid');
   grid.innerHTML='';
@@ -1847,6 +1937,7 @@ function renderWorksheet(){
 
 function checkAnswers(){
   let correctCount=0;
+  const wrong=[], solved=[];
   const cards=document.querySelectorAll('#problemGrid .problem-card');
   cards.forEach(card=>{
     const i=Number(card.dataset.index);
@@ -1859,12 +1950,14 @@ function checkAnswers(){
     const stamp=card.querySelector('.stamp');
     stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
     card.querySelector('.step-toggle').classList.remove('hidden');
-    if(isCorrect) correctCount++;
+    if(isCorrect){ correctCount++; solved.push(p); } else wrong.push(p);
   });
-  updateScoreLabel(correctCount);
+  updateScoreLabel(correctCount, problems.length);
 
   if(!currentAttemptSaved){
-    const scopeLabel = state.scope==='all' ? '전체범위' : (TOPICS.find(t=>t.id===state.scope)||{}).label;
+    applyWrongNotes('math', state.grade, wrong, solved);
+    const scopeLabel = reviewMode ? '오답 노트'
+      : (state.scope==='all' ? '전체범위' : (TOPICS.find(t=>t.id===state.scope)||{}).label);
     saveHistoryRecord({
       date: new Date().toISOString(),
       subject: 'math',
@@ -1874,26 +1967,39 @@ function checkAnswers(){
       scopeLabel: scopeLabel,
       correct: correctCount,
       total: problems.length,
-      mode: 'practice'
+      mode: reviewMode ? 'review' : 'practice'
     });
     currentAttemptSaved=true;
   }
 }
 
-function updateScoreLabel(correctCount){
+/* 채점 결과를 오답 노트에 반영 (연습/모의고사 공용)
+   - 틀린 문제는 노트에 추가하거나 횟수를 올린다
+   - 오답 노트를 푸는 중이라면, 맞힌 문제는 노트에서 지운다 */
+function applyWrongNotes(subject, grade, wrong, solved){
+  recordWrongProblems(subject, grade, wrong);
+  if(reviewMode) solved.forEach(p=>removeWrongProblem(subject, p));
+  updateWrongNoteButtons();
+}
+
+function updateScoreLabel(correctCount, total){
   const el=document.getElementById('scoreLabel');
   if(correctCount===null){ el.textContent='아직 채점 전이에요'; return; }
-  let msg = '10문제 중 '+correctCount+'개 정답!';
-  if(correctCount===10) msg += ' 🎉 완벽해요!';
-  else if(correctCount>=7) msg += ' 잘했어요!';
-  else if(correctCount>=4) msg += ' 조금 더 힘내요!';
+  total = total || 10;
+  const pct = total ? (correctCount/total)*100 : 0;
+  let msg = total+'문제 중 '+correctCount+'개 정답!';
+  if(correctCount===total) msg += ' 🎉 완벽해요!';
+  else if(pct>=70) msg += ' 잘했어요!';
+  else if(pct>=40) msg += ' 조금 더 힘내요!';
   else msg += ' 풀이를 다시 살펴봐요.';
+  if(reviewMode && correctCount===total) msg = '오답을 모두 맞혔어요! 🎉 노트에서 지웠습니다.';
   el.textContent=msg;
 }
 
 /* ========================= 국어 문제지/채점 ========================= */
 function buildKoreanWorksheet(){
   koProblems=[];
+  reviewMode=false;
   koAttemptSaved=false;
   const used=new Set();
   for(let i=0;i<10;i++){
@@ -1910,10 +2016,12 @@ function renderKoreanWorksheet(){
   document.getElementById('scoreLabel').textContent='아직 채점 전이에요';
 
   const catLabel = koState.category==='all' ? '전체 유형' : KOREAN_BANK[koState.category].label;
-  document.getElementById('koSummaryTags').innerHTML =
-    '<span class="tag">'+koState.grade+'학년</span>'+
-    '<span class="tag">국어</span>'+
-    '<span class="tag">'+catLabel+'</span>';
+  document.getElementById('koSummaryTags').innerHTML = reviewMode
+    ? '<span class="tag">📕 오답 노트</span><span class="tag">국어</span><span class="tag">'+koProblems.length+'문제</span>'
+    : '<span class="tag">'+koState.grade+'학년</span>'+
+      '<span class="tag">국어</span>'+
+      '<span class="tag">'+catLabel+'</span>';
+  document.getElementById('koRegenBtn').classList.toggle('hidden', reviewMode);
 
   const grid=document.getElementById('koProblemGrid');
   grid.innerHTML='';
@@ -1924,6 +2032,7 @@ function renderKoreanWorksheet(){
 
 function koCheckAnswers(){
   let correctCount=0;
+  const wrong=[], solved=[];
   const cards=document.querySelectorAll('#koProblemGrid .problem-card');
   cards.forEach(card=>{
     const i=Number(card.dataset.index);
@@ -1936,12 +2045,14 @@ function koCheckAnswers(){
     const stamp=card.querySelector('.stamp');
     stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
     card.querySelector('.step-toggle').classList.remove('hidden');
-    if(isCorrect) correctCount++;
+    if(isCorrect){ correctCount++; solved.push(p); } else wrong.push(p);
   });
-  updateScoreLabel(correctCount);
+  updateScoreLabel(correctCount, koProblems.length);
 
   if(!koAttemptSaved){
-    const scopeLabel = koState.category==='all' ? '전체범위' : KOREAN_BANK[koState.category].label;
+    applyWrongNotes('korean', koState.grade, wrong, solved);
+    const scopeLabel = reviewMode ? '오답 노트'
+      : (koState.category==='all' ? '전체범위' : KOREAN_BANK[koState.category].label);
     saveHistoryRecord({
       date: new Date().toISOString(),
       subject: 'korean',
@@ -1950,7 +2061,7 @@ function koCheckAnswers(){
       scopeLabel: scopeLabel,
       correct: correctCount,
       total: koProblems.length,
-      mode: 'practice'
+      mode: reviewMode ? 'review' : 'practice'
     });
     koAttemptSaved=true;
   }
@@ -1959,6 +2070,7 @@ function koCheckAnswers(){
 /* ========================= 영어 연습 화면 ========================= */
 function buildEnglishWorksheet(){
   enProblems=[];
+  reviewMode=false;
   enAttemptSaved=false;
   const used=new Set();
   for(let i=0;i<10;i++){
@@ -1975,10 +2087,12 @@ function renderEnglishWorksheet(){
   document.getElementById('scoreLabel').textContent='아직 채점 전이에요';
 
   const catLabel = enState.category==='all' ? '전체 유형' : ENGLISH_BANK[enState.category].label;
-  document.getElementById('enSummaryTags').innerHTML =
-    '<span class="tag">'+enState.grade+'학년</span>'+
-    '<span class="tag">영어</span>'+
-    '<span class="tag">'+catLabel+'</span>';
+  document.getElementById('enSummaryTags').innerHTML = reviewMode
+    ? '<span class="tag">📕 오답 노트</span><span class="tag">영어</span><span class="tag">'+enProblems.length+'문제</span>'
+    : '<span class="tag">'+enState.grade+'학년</span>'+
+      '<span class="tag">영어</span>'+
+      '<span class="tag">'+catLabel+'</span>';
+  document.getElementById('enRegenBtn').classList.toggle('hidden', reviewMode);
 
   const grid=document.getElementById('enProblemGrid');
   grid.innerHTML='';
@@ -1989,6 +2103,7 @@ function renderEnglishWorksheet(){
 
 function enCheckAnswers(){
   let correctCount=0;
+  const wrong=[], solved=[];
   const cards=document.querySelectorAll('#enProblemGrid .problem-card');
   cards.forEach(card=>{
     const i=Number(card.dataset.index);
@@ -2001,12 +2116,14 @@ function enCheckAnswers(){
     const stamp=card.querySelector('.stamp');
     stamp.className='stamp show '+(isCorrect?'correct':'incorrect');
     card.querySelector('.step-toggle').classList.remove('hidden');
-    if(isCorrect) correctCount++;
+    if(isCorrect){ correctCount++; solved.push(p); } else wrong.push(p);
   });
-  updateScoreLabel(correctCount);
+  updateScoreLabel(correctCount, enProblems.length);
 
   if(!enAttemptSaved){
-    const scopeLabel = enState.category==='all' ? '전체범위' : ENGLISH_BANK[enState.category].label;
+    applyWrongNotes('english', enState.grade, wrong, solved);
+    const scopeLabel = reviewMode ? '오답 노트'
+      : (enState.category==='all' ? '전체범위' : ENGLISH_BANK[enState.category].label);
     saveHistoryRecord({
       date: new Date().toISOString(),
       subject: 'english',
@@ -2015,10 +2132,28 @@ function enCheckAnswers(){
       scopeLabel: scopeLabel,
       correct: correctCount,
       total: enProblems.length,
-      mode: 'practice'
+      mode: reviewMode ? 'review' : 'practice'
     });
     enAttemptSaved=true;
   }
+}
+
+/* ========================= 오답 노트 다시 풀기 ========================= */
+function startWrongNoteReview(subject){
+  const picked=takeWrongProblems(subject);
+  if(!picked.length) return;
+  reviewMode=true;
+  if(subject==='korean'){
+    koProblems=picked; koAttemptSaved=false; renderKoreanWorksheet();
+  } else if(subject==='english'){
+    enProblems=picked; enAttemptSaved=false; renderEnglishWorksheet();
+  } else {
+    problems=picked; currentAttemptSaved=false; renderWorksheet();
+  }
+}
+function exitReviewMode(){
+  reviewMode=false;
+  updateWrongNoteButtons();
 }
 
 /* ========================= 과목/모드 전환 (공용) ========================= */
@@ -2027,6 +2162,7 @@ let currentMode='practice';
 function updateTopLevelView(){
   const subj = currentSubject; // 'math' | 'korean' | 'english'
   const isExam = currentMode==='exam';
+  exitReviewMode();   // 과목/모드를 옮기면 오답 노트 풀이는 끝난 것으로 본다
 
   document.getElementById('subjectMathTab').classList.toggle('selected', subj==='math');
   document.getElementById('subjectKoreanTab').classList.toggle('selected', subj==='korean');
@@ -2228,6 +2364,7 @@ function gradeExam(isAuto){
   let correctCount=0;
   const topicStats={};
   const wrongList=[];
+  const wrongProblems=[];
   const cards=document.querySelectorAll('#examProblemGrid .problem-card');
   cards.forEach(card=>{
     const i=Number(card.dataset.index);
@@ -2243,8 +2380,11 @@ function gradeExam(isAuto){
     if(!topicStats[p.topic]) topicStats[p.topic]={correct:0,total:0};
     topicStats[p.topic].total++;
     if(isCorrect){ correctCount++; topicStats[p.topic].correct++; }
-    else wrongList.push({question:p.question, correctText:formatCorrectAnswer(p)});
+    else { wrongList.push({question:p.question, correctText:formatCorrectAnswer(p)}); wrongProblems.push(p); }
   });
+
+  recordWrongProblems(currentSubject, examState.grade, wrongProblems);
+  updateWrongNoteButtons();
 
   showExamResult(correctCount, examProblems.length, topicStats, wrongList, isAuto);
 
@@ -2303,7 +2443,11 @@ document.getElementById('backBtn').addEventListener('click', ()=>{
   document.getElementById('worksheetScreen').classList.add('hidden');
   document.getElementById('footerBar').classList.add('hidden');
   document.getElementById('settingsScreen').classList.remove('hidden');
+  exitReviewMode();
 });
+document.getElementById('mathWrongNoteBtn').addEventListener('click', ()=>startWrongNoteReview('math'));
+document.getElementById('koWrongNoteBtn').addEventListener('click', ()=>startWrongNoteReview('korean'));
+document.getElementById('enWrongNoteBtn').addEventListener('click', ()=>startWrongNoteReview('english'));
 document.getElementById('checkBtn').addEventListener('click', ()=>{
   if(currentSubject==='korean') koCheckAnswers();
   else if(currentSubject==='english') enCheckAnswers();
@@ -2343,6 +2487,7 @@ document.getElementById('koBackBtn').addEventListener('click', ()=>{
   document.getElementById('koWorksheetScreen').classList.add('hidden');
   document.getElementById('footerBar').classList.add('hidden');
   document.getElementById('koSettingsScreen').classList.remove('hidden');
+  exitReviewMode();
 });
 document.getElementById('koHistoryToggle').addEventListener('click', ()=>{
   const panel=document.getElementById('koHistoryPanel');
@@ -2357,6 +2502,7 @@ document.getElementById('enBackBtn').addEventListener('click', ()=>{
   document.getElementById('enWorksheetScreen').classList.add('hidden');
   document.getElementById('footerBar').classList.add('hidden');
   document.getElementById('enSettingsScreen').classList.remove('hidden');
+  exitReviewMode();
 });
 document.getElementById('enHistoryToggle').addEventListener('click', ()=>{
   const panel=document.getElementById('enHistoryPanel');
@@ -2374,6 +2520,7 @@ initKoGradeRow();
 populateKoScopeSelect();
 initEnGradeRow();
 populateEnScopeSelect();
+updateWrongNoteButtons();
 updateTopLevelView();
 </script>
 </body>
