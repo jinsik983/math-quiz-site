@@ -1677,13 +1677,31 @@ function generateProblem(grade,diff,scope,opts){
   return topic.generate(grade,diff,opts);
 }
 
-/* ========================= 국어 문제 생성 ========================= */
-function generateKoreanProblem(grade, category){
-  const cat = category==='all' ? KOREAN_CATEGORY_ORDER[randInt(0,KOREAN_CATEGORY_ORDER.length-1)] : category;
-  const bank = KOREAN_BANK[cat];
+/* ========================= 문제은행 중복 방지 =========================
+   used: 이번 문제지에서 이미 뽑은 문항을 담는 Set.
+   아직 안 뽑은 문항을 우선 고르고, 은행을 다 쓰면 그때부터 중복을 허용한다. */
+function pickBankCategory(order, bankMap, grade, used){
+  const fresh = order.filter(c => ((bankMap[c].items[grade])||[]).some(it=>!used.has(it)));
+  const pool = fresh.length ? fresh : order;
+  return pool[randInt(0,pool.length-1)];
+}
+function pickBankItem(bank, grade, used){
   const items = bank.items[grade] || [];
   if(items.length===0) return null;
-  const item = items[randInt(0,items.length-1)];
+  const fresh = items.filter(it=>!used.has(it));
+  const pool = fresh.length ? fresh : items;
+  const item = pool[randInt(0,pool.length-1)];
+  used.add(item);
+  return item;
+}
+
+/* ========================= 국어 문제 생성 ========================= */
+function generateKoreanProblem(grade, category, used){
+  used = used || new Set();
+  const cat = category==='all' ? pickBankCategory(KOREAN_CATEGORY_ORDER, KOREAN_BANK, grade, used) : category;
+  const bank = KOREAN_BANK[cat];
+  const item = pickBankItem(bank, grade, used);
+  if(!item) return null;
   return {
     topic: bank.label,
     question: item.q,
@@ -1697,12 +1715,12 @@ function generateKoreanProblem(grade, category){
 }
 
 /* ========================= 영어 문제 생성 ========================= */
-function generateEnglishProblem(grade, category){
-  const cat = category==='all' ? ENGLISH_CATEGORY_ORDER[randInt(0,ENGLISH_CATEGORY_ORDER.length-1)] : category;
+function generateEnglishProblem(grade, category, used){
+  used = used || new Set();
+  const cat = category==='all' ? pickBankCategory(ENGLISH_CATEGORY_ORDER, ENGLISH_BANK, grade, used) : category;
   const bank = ENGLISH_BANK[cat];
-  const items = bank.items[grade] || [];
-  if(items.length===0) return null;
-  const item = items[randInt(0,items.length-1)];
+  const item = pickBankItem(bank, grade, used);
+  if(!item) return null;
   return {
     topic: bank.label,
     question: item.q,
@@ -1877,8 +1895,9 @@ function updateScoreLabel(correctCount){
 function buildKoreanWorksheet(){
   koProblems=[];
   koAttemptSaved=false;
+  const used=new Set();
   for(let i=0;i<10;i++){
-    const p=generateKoreanProblem(koState.grade, koState.category);
+    const p=generateKoreanProblem(koState.grade, koState.category, used);
     if(p) koProblems.push(p);
   }
   renderKoreanWorksheet();
@@ -1941,8 +1960,9 @@ function koCheckAnswers(){
 function buildEnglishWorksheet(){
   enProblems=[];
   enAttemptSaved=false;
+  const used=new Set();
   for(let i=0;i<10;i++){
-    const p=generateEnglishProblem(enState.grade, enState.category);
+    const p=generateEnglishProblem(enState.grade, enState.category, used);
     if(p) enProblems.push(p);
   }
   renderEnglishWorksheet();
@@ -2119,12 +2139,13 @@ function buildKoreanExamProblems(){
     const t=assignedCats[i]; assignedCats[i]=assignedCats[j]; assignedCats[j]=t;
   }
   const results=[];
+  const used=new Set();
   assignedCats.forEach(cat=>{
-    const p=generateKoreanProblem(examState.grade, cat);
+    const p=generateKoreanProblem(examState.grade, cat, used);
     if(p) results.push(p);
   });
   while(results.length<examState.count){
-    const p=generateKoreanProblem(examState.grade, 'all');
+    const p=generateKoreanProblem(examState.grade, 'all', used);
     if(p) results.push(p); else break;
   }
   return results;
@@ -2138,12 +2159,13 @@ function buildEnglishExamProblems(){
     const t=assignedCats[i]; assignedCats[i]=assignedCats[j]; assignedCats[j]=t;
   }
   const results=[];
+  const used=new Set();
   assignedCats.forEach(cat=>{
-    const p=generateEnglishProblem(examState.grade, cat);
+    const p=generateEnglishProblem(examState.grade, cat, used);
     if(p) results.push(p);
   });
   while(results.length<examState.count){
-    const p=generateEnglishProblem(examState.grade, 'all');
+    const p=generateEnglishProblem(examState.grade, 'all', used);
     if(p) results.push(p); else break;
   }
   return results;
