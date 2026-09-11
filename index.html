@@ -107,6 +107,10 @@ body{
 .wrong-item .wq{font-family:'Nanum Gothic Coding', monospace; font-size:14.5px; margin-bottom:6px;}
 .wrong-item .wa{font-size:13.5px; color:var(--correct); font-weight:700; margin-bottom:6px;}
 .wrong-empty{color:var(--ink-soft); font-size:14px;}
+.wrong-item .wmeta{font-size:12.5px; color:var(--ink-soft); font-weight:700;}
+.wn-title{font-size:13.5px; color:var(--ink-soft); font-weight:700; margin:16px 0 8px;}
+.wn-title:first-child{margin-top:0;}
+.topic-stat-row .t-bar-fill.weak{background:var(--incorrect);}
 
 /* ---------- Settings screen ---------- */
 .panel{
@@ -492,6 +496,11 @@ select#scopeSelect{
 
     <button class="generate-btn" id="generateBtn">문제지 만들기 →</button>
     <button class="wrongnote-btn" id="mathWrongNoteBtn">📕 오답 노트</button>
+    <button class="history-link" id="mathWrongViewToggle">🔍 오답 노트 살펴보기</button>
+    <div class="panel history-panel hidden" id="mathWrongPanel">
+      <h2><span class="idx">📕</span> 오답 노트</h2>
+      <div id="mathWrongContent"></div>
+    </div>
     <button class="history-link" id="historyToggle">📋 지난 기록 보기</button>
     <div class="panel history-panel hidden" id="historyPanel">
       <h2><span class="idx">★</span> 지난 기록</h2>
@@ -526,6 +535,11 @@ select#scopeSelect{
       </div>
       <button class="generate-btn" id="koGenerateBtn">문제지 만들기 →</button>
       <button class="wrongnote-btn" id="koWrongNoteBtn">📕 오답 노트</button>
+      <button class="history-link" id="koWrongViewToggle">🔍 오답 노트 살펴보기</button>
+      <div class="panel history-panel hidden" id="koWrongPanel">
+        <h2><span class="idx">📕</span> 오답 노트</h2>
+        <div id="koWrongContent"></div>
+      </div>
       <button class="history-link" id="koHistoryToggle">📋 지난 기록 보기</button>
       <div class="panel history-panel hidden" id="koHistoryPanel">
         <h2><span class="idx">★</span> 지난 기록</h2>
@@ -559,6 +573,11 @@ select#scopeSelect{
       </div>
       <button class="generate-btn" id="enGenerateBtn">문제지 만들기 →</button>
       <button class="wrongnote-btn" id="enWrongNoteBtn">📕 오답 노트</button>
+      <button class="history-link" id="enWrongViewToggle">🔍 오답 노트 살펴보기</button>
+      <div class="panel history-panel hidden" id="enWrongPanel">
+        <h2><span class="idx">📕</span> 오답 노트</h2>
+        <div id="enWrongContent"></div>
+      </div>
       <button class="history-link" id="enHistoryToggle">📋 지난 기록 보기</button>
       <div class="panel history-panel hidden" id="enHistoryPanel">
         <h2><span class="idx">★</span> 지난 기록</h2>
@@ -1573,6 +1592,7 @@ function updateWrongNoteButtons(){
     btn.textContent = n===0 ? '📕 오답 노트 (아직 없어요)' : '📕 오답 노트 다시 풀기 ('+n+'문제)';
     btn.disabled = n===0;
   });
+  refreshOpenWrongPanels();
 }
 function renderHistory(targetId){
   targetId = targetId || 'historyContent';
@@ -1613,6 +1633,77 @@ function renderHistory(targetId){
       }
     });
   }
+}
+
+/* 오답 노트 살펴보기: 취약 유형 요약 + 틀린 문제 목록 */
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function renderWrongNotePanel(subject, targetId){
+  const el=document.getElementById(targetId);
+  if(!el) return;
+  const notes=loadWrongNotes().filter(n=>n.subject===subject);
+  if(notes.length===0){
+    el.innerHTML='<div class="wrong-empty">아직 틀린 문제가 없어요. 문제를 풀고 채점하면 여기에 쌓입니다.</div>';
+    return;
+  }
+
+  /* 유형별로 틀린 횟수를 합산해 약한 순서대로 */
+  const byTopic={};
+  notes.forEach(n=>{
+    const t=n.problem.topic || '기타';
+    if(!byTopic[t]) byTopic[t]={times:0, items:0};
+    byTopic[t].times += n.wrongCount;
+    byTopic[t].items += 1;
+  });
+  const topics=Object.keys(byTopic).sort((a,b)=>byTopic[b].times-byTopic[a].times);
+  const maxTimes=byTopic[topics[0]].times;
+
+  let html='<div class="wn-title">자주 틀리는 유형</div>';
+  topics.forEach(t=>{
+    const st=byTopic[t];
+    const w=Math.round((st.times/maxTimes)*100);
+    html+='<div class="topic-stat-row">'+
+      '<div class="t-label">'+escapeHtml(t)+'</div>'+
+      '<div class="t-bar-bg"><div class="t-bar-fill weak" style="width:'+w+'%"></div></div>'+
+      '<div class="t-frac">'+st.times+'회</div></div>';
+  });
+
+  /* 많이 틀린 문제부터 */
+  const sorted=notes.slice().sort((a,b)=> b.wrongCount-a.wrongCount || (a.lastWrongAt < b.lastWrongAt ? 1 : -1));
+  html+='<div class="wn-title">틀린 문제 '+notes.length+'개</div>';
+  sorted.forEach(n=>{
+    const p=n.problem;
+    const meta=(n.wrongCount>1 ? n.wrongCount+'번 틀림 · ' : '')+formatDate(n.lastWrongAt);
+    html+='<div class="wrong-item">'+
+      (p.passage ? '<div class="wmeta">'+escapeHtml(p.passage)+'</div>' : '')+
+      '<div class="wq">'+escapeHtml(p.question)+'</div>'+
+      '<div class="wa">정답: '+escapeHtml(formatCorrectAnswer(p))+'</div>'+
+      '<div class="wmeta">'+escapeHtml(p.topic||'')+' · '+meta+'</div>'+
+    '</div>';
+  });
+  html+='<button class="history-clear" id="clearWrong_'+targetId+'">이 과목 오답 노트 비우기</button>';
+  el.innerHTML=html;
+
+  const btn=document.getElementById('clearWrong_'+targetId);
+  if(btn){
+    btn.addEventListener('click', ()=>{
+      if(confirm('이 과목의 오답 노트를 모두 지울까요?')){
+        saveWrongNotes(loadWrongNotes().filter(n=>n.subject!==subject));
+        updateWrongNoteButtons();
+        renderWrongNotePanel(subject, targetId);
+      }
+    });
+  }
+}
+/* 열려 있는 오답 노트 패널이 있으면 최신 내용으로 다시 그린다 */
+function refreshOpenWrongPanels(){
+  [['math','mathWrongPanel','mathWrongContent'],
+   ['korean','koWrongPanel','koWrongContent'],
+   ['english','enWrongPanel','enWrongContent']].forEach(([subj,panelId,contentId])=>{
+    const panel=document.getElementById(panelId);
+    if(panel && !panel.classList.contains('hidden')) renderWrongNotePanel(subj, contentId);
+  });
 }
 
 /* ========================= 초기화 ========================= */
@@ -2509,6 +2600,17 @@ document.getElementById('enHistoryToggle').addEventListener('click', ()=>{
   const nowHidden=panel.classList.toggle('hidden');
   document.getElementById('enHistoryToggle').textContent = nowHidden ? '📋 지난 기록 보기' : '📋 지난 기록 숨기기';
   if(!nowHidden) renderHistory('enHistoryContent');
+});
+
+[['math','mathWrongViewToggle','mathWrongPanel','mathWrongContent'],
+ ['korean','koWrongViewToggle','koWrongPanel','koWrongContent'],
+ ['english','enWrongViewToggle','enWrongPanel','enWrongContent']].forEach(([subj,toggleId,panelId,contentId])=>{
+  document.getElementById(toggleId).addEventListener('click', ()=>{
+    const panel=document.getElementById(panelId);
+    const nowHidden=panel.classList.toggle('hidden');
+    document.getElementById(toggleId).textContent = nowHidden ? '🔍 오답 노트 살펴보기' : '🔍 오답 노트 닫기';
+    if(!nowHidden) renderWrongNotePanel(subj, contentId);
+  });
 });
 
 initGradeRow();
