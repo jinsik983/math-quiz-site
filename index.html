@@ -621,6 +621,18 @@ function simplifyFraction(num,den){
   return [num/g, den/g];
 }
 
+/* 분수 계산 결과를 문제로 만든다.
+   4/4나 0/5처럼 결과가 정수가 되면 분자·분모 두 칸 대신 한 칸에 답하게 한다.
+   (초등에서는 4/4를 '1/1'이 아니라 '1'로 답하기 때문) */
+function fractionProblem(expr, rawNum, rawDen, sn, sd, steps){
+  if(sd===1){
+    steps=steps.concat([rawNum+'/'+rawDen+' = '+sn+' 이므로 답은 '+sn+'입니다.']);
+    return {topic:'분수의 덧셈과 뺄셈', question:expr+' = ?', answerType:'number', correct:sn, unit:'', steps};
+  }
+  if(sn!==rawNum||sd!==rawDen) steps=steps.concat(['기약분수로 나타내면 '+sn+'/'+sd+' 입니다.']);
+  return {topic:'분수의 덧셈과 뺄셈', question:expr+' = ? (기약분수)', answerType:'fraction', correct:{num:sn,den:sd}, unit:'', steps};
+}
+
 /* 세로셈 덧셈: 자리별 받아올림 과정을 생성 */
 function additionSteps(a,b){
   const as=String(a), bs=String(b);
@@ -848,9 +860,8 @@ const TOPICS=[
     if(op==='-' && n1<n2){const t=n1;n1=n2;n2=t;}
     const rawNum = op==='+'? n1+n2 : n1-n2;
     const [sn,sd]=simplifyFraction(rawNum,d);
-    let steps=['분모가 같으므로 분자끼리 계산해요.', n1+'/'+d+' '+op+' '+n2+'/'+d+' = '+rawNum+'/'+d];
-    if(sn!==rawNum||sd!==d) steps.push('기약분수로 나타내면 '+sn+'/'+sd+' 입니다.');
-    return {topic:'분수의 덧셈과 뺄셈', question:n1+'/'+d+' '+op+' '+n2+'/'+d+' = ? (기약분수)', answerType:'fraction', correct:{num:sn,den:sd}, unit:'', steps};
+    const steps=['분모가 같으므로 분자끼리 계산해요.', n1+'/'+d+' '+op+' '+n2+'/'+d+' = '+rawNum+'/'+d];
+    return fractionProblem(n1+'/'+d+' '+op+' '+n2+'/'+d, rawNum, d, sn, sd, steps);
   } else {
     let d1=randInt(2,9), d2=randInt(2,9);
     while(d2===d1) d2=randInt(2,9);
@@ -861,13 +872,12 @@ const TOPICS=[
     if(op==='-' && n1c<n2c){ let t; t=d1;d1=d2;d2=t; t=n1;n1=n2;n2=t; t=n1c;n1c=n2c;n2c=t; }
     const rawNum= op==='+'? n1c+n2c : n1c-n2c;
     const [sn,sd]=simplifyFraction(rawNum,L);
-    let steps=[
+    const steps=[
       d1+'과 '+d2+'의 최소공배수는 '+L+'입니다. (통분)',
       n1+'/'+d1+' = '+n1c+'/'+L+',  '+n2+'/'+d2+' = '+n2c+'/'+L,
       n1c+'/'+L+' '+op+' '+n2c+'/'+L+' = '+rawNum+'/'+L
     ];
-    if(sn!==rawNum||sd!==L) steps.push('기약분수로 나타내면 '+sn+'/'+sd+' 입니다.');
-    return {topic:'분수의 덧셈과 뺄셈', question:n1+'/'+d1+' '+op+' '+n2+'/'+d2+' = ? (기약분수)', answerType:'fraction', correct:{num:sn,den:sd}, unit:'', steps};
+    return fractionProblem(n1+'/'+d1+' '+op+' '+n2+'/'+d2, rawNum, L, sn, sd, steps);
   }
 }},
 {id:'dec', label:'소수의 덧셈과 뺄셈', grades:[3,4,5,6], generate:(grade,diff)=>{
