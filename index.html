@@ -400,6 +400,71 @@ select#scopeSelect{
   .app-header h1{font-size:34px;}
   .footer-bar{flex-wrap:wrap;}
 }
+
+/* ========================= 인쇄 ========================= */
+.modal-backdrop{
+  position:fixed; inset:0; background:rgba(38,48,74,0.45); z-index:50;
+  display:flex; align-items:center; justify-content:center; padding:16px;
+}
+.modal{
+  background:var(--card-bg); border-radius:18px; box-shadow:var(--shadow);
+  padding:22px 24px; width:min(420px,100%);
+}
+.modal h2{font-family:'Gaegu',cursive; font-size:26px; margin:0 0 10px; color:var(--ink);}
+.modal .opt{display:flex; align-items:center; gap:10px; font-size:15px; font-weight:700; padding:8px 0; cursor:pointer;}
+.modal .opt input{accent-color:var(--accent); width:18px; height:18px; cursor:pointer; flex:none;}
+.modal .opt.sub{padding-left:28px; font-weight:500; color:var(--ink-soft);}
+.modal .modal-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:16px;}
+.primary-btn{
+  border:none; background:var(--accent); color:#fff;
+  font-family:'Gaegu',cursive; font-weight:700; font-size:17px;
+  border-radius:10px; padding:9px 18px; cursor:pointer;
+}
+.primary-btn:hover{filter:brightness(1.08);}
+#printArea{display:none;}
+
+/* 종이에 찍힐 때만 쓰는 배치: 화면(.wrap)은 숨기고 #printArea만 보인다 */
+@media print{
+  @page{ size:A4; margin:14mm 14mm 16mm; }
+  body{ background:#fff !important; }
+  body.printing .wrap, body.printing .footer-bar, body.printing .modal-backdrop{ display:none !important; }
+  body.printing #printArea{ display:block; }
+  .print-sheet{ break-after:page; page-break-after:always; color:#000; }
+  .print-sheet:last-child{ break-after:auto; page-break-after:auto; }
+  .print-head{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+    border-bottom:2px solid #000; padding-bottom:2mm; margin-bottom:7mm;
+  }
+  .print-title{ font-family:'Gaegu',cursive; font-size:24pt; font-weight:700; line-height:1.1; }
+  .print-meta{ font-size:10pt; color:#444; margin-top:1mm; }
+  .print-fields{ font-size:10.5pt; white-space:nowrap; }
+  .print-problems{ list-style:none; margin:0; padding:0; column-gap:10mm; }
+  .print-problems.cols-2{ columns:2; }
+  .print-problem{
+    break-inside:avoid; page-break-inside:avoid;
+    display:flex; gap:3mm; margin-bottom:7mm; font-size:11.5pt; line-height:1.5;
+  }
+  .pp-num{
+    flex:none; width:7mm; height:7mm; border:1.5px solid #000; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Gaegu',cursive; font-weight:700; font-size:11pt;
+  }
+  .pp-body{ flex:1; min-width:0; }
+  .pp-topic{ font-size:8.5pt; color:#666; margin-bottom:1mm; }
+  .pp-passage{ border:1px solid #999; border-radius:2mm; padding:2mm 3mm; margin-bottom:2mm; font-size:10.5pt; line-height:1.55; }
+  .pp-answer{ margin-top:2.5mm; font-size:10.5pt; display:flex; align-items:center; gap:2mm; flex-wrap:wrap; }
+  .blank{ display:inline-block; min-width:22mm; height:6mm; border-bottom:1.5px solid #000; }
+  /* 분수 답 칸: 분자·분모 상자를 세로로 쌓고 가운데 줄이 분수선 */
+  .frac-blank{ display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; }
+  .frac-blank span{ display:block; width:12mm; height:6.5mm; border:1px dashed #aaa; }
+  .frac-blank span:first-child{ border-bottom:1.5px solid #000; border-radius:1mm 1mm 0 0; }
+  .frac-blank span:last-child{ border-top:none; border-radius:0 0 1mm 1mm; }
+  .pp-choices{ margin-top:2mm; display:flex; flex-wrap:wrap; gap:1.5mm 6mm; font-size:10.5pt; }
+  .print-answers{ list-style:none; margin:0; padding:0; columns:2; column-gap:10mm; font-size:11pt; }
+  .print-answers li{ break-inside:avoid; page-break-inside:avoid; margin-bottom:3mm; }
+  .print-answers .ans{ font-weight:700; }
+  .print-answers .steps{ font-size:9pt; color:#444; margin:1mm 0 0 6mm; line-height:1.45; }
+}
 </style>
 </head>
 <body>
@@ -450,6 +515,7 @@ select#scopeSelect{
     <div class="summary-bar">
       <div class="tags" id="examSummaryTags"></div>
       <div class="actions">
+        <button class="ghost-btn print-btn">🖨 인쇄</button>
         <button class="ghost-btn" id="examBackBtn">⚙ 설정으로</button>
       </div>
     </div>
@@ -513,6 +579,7 @@ select#scopeSelect{
     <div class="summary-bar">
       <div class="tags" id="summaryTags"></div>
       <div class="actions">
+        <button class="ghost-btn print-btn">🖨 인쇄</button>
         <button class="ghost-btn" id="regenBtn">🔄 새 문제</button>
         <button class="ghost-btn" id="backBtn">⚙ 설정으로</button>
       </div>
@@ -551,6 +618,7 @@ select#scopeSelect{
       <div class="summary-bar">
         <div class="tags" id="koSummaryTags"></div>
         <div class="actions">
+          <button class="ghost-btn print-btn">🖨 인쇄</button>
           <button class="ghost-btn" id="koRegenBtn">🔄 새 문제</button>
           <button class="ghost-btn" id="koBackBtn">⚙ 설정으로</button>
         </div>
@@ -589,6 +657,7 @@ select#scopeSelect{
       <div class="summary-bar">
         <div class="tags" id="enSummaryTags"></div>
         <div class="actions">
+          <button class="ghost-btn print-btn">🖨 인쇄</button>
           <button class="ghost-btn" id="enRegenBtn">🔄 새 문제</button>
           <button class="ghost-btn" id="enBackBtn">⚙ 설정으로</button>
         </div>
@@ -598,6 +667,22 @@ select#scopeSelect{
   </div>
   <!-- ============ /영어 섹션 ============ -->
 </div>
+
+<!-- 인쇄 선택 창 -->
+<div class="modal-backdrop hidden" id="printModal">
+  <div class="modal">
+    <h2>🖨 인쇄하기</h2>
+    <label class="opt"><input type="checkbox" id="printSheetOpt" checked> 문제지 (답 쓰는 칸이 있어요)</label>
+    <label class="opt"><input type="checkbox" id="printAnswerOpt"> 정답지</label>
+    <label class="opt sub"><input type="checkbox" id="printStepsOpt"> 풀이도 함께 (정답지에)</label>
+    <div class="modal-actions">
+      <button class="ghost-btn" id="printCancelBtn">취소</button>
+      <button class="primary-btn" id="printGoBtn">인쇄하기 →</button>
+    </div>
+  </div>
+</div>
+<!-- 종이용 배치 (인쇄할 때만 채워진다) -->
+<div id="printArea"></div>
 
 <div class="footer-bar hidden" id="footerBar">
   <button class="grade-check-btn" id="checkBtn">✔ 채점하기</button>
@@ -721,7 +806,7 @@ function divisionSteps(dividend,divisor){
   const quotient=Math.floor(dividend/divisor);
   const remainder=dividend-quotient*divisor;
   let lines=[
-    dividend+' ÷ '+divisor+' 을(를) 계산해요.',
+    josa(dividend+' ÷ '+divisor,'을/를')+' 계산해요.',
     divisor+' × '+quotient+' = '+(divisor*quotient)+' 로 '+dividend+'에 가장 가깝습니다.'
   ];
   if(remainder>0){
@@ -2695,6 +2780,102 @@ initEnGradeRow();
 populateEnScopeSelect();
 updateWrongNoteButtons();
 updateTopLevelView();
+
+/* ========================= 인쇄 =========================
+   화면의 카드 대신 종이용 배치(#printArea)를 따로 만들어 인쇄한다.
+   문제지(답 쓰는 칸)와 정답지(풀이 선택)를 고를 수 있고, 연습·모의고사·국어·영어 화면 공용이다. */
+const CIRCLED=['①','②','③','④','⑤','⑥','⑦','⑧'];
+const SUBJECT_LABEL={math:'수학', korean:'국어', english:'영어'};
+
+/* 지금 화면에 보이는 문제지: 제목, 조건 태그가 있는 요소, 문제 목록 */
+function currentPrintSet(){
+  if(currentMode==='exam') return {title:SUBJECT_LABEL[currentSubject]+' 모의고사', tagsId:'examSummaryTags', problems:examProblems};
+  if(currentSubject==='korean') return {title:'국어 문제지', tagsId:'koSummaryTags', problems:koProblems};
+  if(currentSubject==='english') return {title:'영어 문제지', tagsId:'enSummaryTags', problems:enProblems};
+  return {title:'수학 문제지', tagsId:'summaryTags', problems:problems};
+}
+function printTagsText(tagsId){
+  return Array.from(document.querySelectorAll('#'+tagsId+' .tag')).map(t=>t.textContent.trim()).join(' · ');
+}
+/* 답 쓰는 칸: 답 형식별로 다르게 */
+function printAnswerBlank(p){
+  if(p.answerType==='number') return '<div class="pp-answer">답: <span class="blank"></span>'+(p.unit ? ' '+p.unit : '')+'</div>';
+  if(p.answerType==='division') return '<div class="pp-answer">몫: <span class="blank"></span> 나머지: <span class="blank"></span></div>';
+  if(p.answerType==='fraction') return '<div class="pp-answer">답: <span class="frac-blank"><span></span><span></span></span></div>';
+  if(p.answerType==='ratio') return '<div class="pp-answer">답: <span class="blank"></span> : <span class="blank"></span></div>';
+  if(p.answerType==='choice') return '<div class="pp-choices">'+p.options.map((o,i)=>'<span>'+CIRCLED[i]+' '+o+'</span>').join('')+'</div>';
+  return '';
+}
+function printAnswerText(p){
+  if(p.answerType==='choice') return CIRCLED[p.correct]+' '+p.options[p.correct];
+  return formatCorrectAnswer(p);
+}
+function buildPrintArea(opts){
+  const set=currentPrintSet();
+  const meta=escapeHtml(printTagsText(set.tagsId));
+  const fields='이름: <span class="blank"></span>&nbsp;&nbsp; 날짜: <span class="blank" style="min-width:12mm"></span> 월 <span class="blank" style="min-width:10mm"></span> 일&nbsp;&nbsp; 점수: <span class="blank" style="min-width:14mm"></span>';
+  const hasPassage=set.problems.some(p=>p.passage);   // 지문이 있으면 한 단으로
+  let html='';
+  if(opts.sheet){
+    html+='<div class="print-sheet">'+
+      '<div class="print-head"><div><div class="print-title">'+escapeHtml(set.title)+'</div><div class="print-meta">'+meta+'</div></div><div class="print-fields">'+fields+'</div></div>'+
+      '<ol class="print-problems'+(hasPassage ? '' : ' cols-2')+'">'+
+      set.problems.map((p,i)=>
+        '<li class="print-problem"><div class="pp-num">'+(i+1)+'</div><div class="pp-body">'+
+          '<div class="pp-topic">'+p.topic+(p.isWord ? ' · 문장제' : '')+'</div>'+
+          (p.passage ? '<div class="pp-passage">'+p.passage+'</div>' : '')+
+          '<div class="pp-q">'+p.question+'</div>'+
+          printAnswerBlank(p)+
+        '</div></li>').join('')+
+      '</ol></div>';
+  }
+  if(opts.answers){
+    html+='<div class="print-sheet">'+
+      '<div class="print-head"><div><div class="print-title">'+escapeHtml(set.title)+' 정답지</div><div class="print-meta">'+meta+'</div></div></div>'+
+      '<ol class="print-answers">'+
+      set.problems.map((p,i)=>
+        '<li><span class="ans">'+(i+1)+'. '+printAnswerText(p)+'</span>'+
+        (opts.steps && p.steps && p.steps.length ? '<div class="steps">'+p.steps.join('<br>')+'</div>' : '')+
+        '</li>').join('')+
+      '</ol></div>';
+  }
+  document.getElementById('printArea').innerHTML=html;
+}
+function worksheetVisible(){
+  return ['worksheetScreen','koWorksheetScreen','enWorksheetScreen','examRunScreen'].some(id=>{
+    const el=document.getElementById(id);
+    return el && !el.classList.contains('hidden') && el.offsetParent!==null;
+  });
+}
+function openPrintModal(){ document.getElementById('printModal').classList.remove('hidden'); }
+function closePrintModal(){ document.getElementById('printModal').classList.add('hidden'); }
+function runPrint(){
+  const opts={
+    sheet: document.getElementById('printSheetOpt').checked,
+    answers: document.getElementById('printAnswerOpt').checked,
+    steps: document.getElementById('printStepsOpt').checked
+  };
+  if(!opts.sheet && !opts.answers){ alert('문제지나 정답지 중 하나는 골라 주세요.'); return; }
+  closePrintModal();
+  buildPrintArea(opts);
+  document.body.classList.add('printing');
+  window.print();
+}
+/* Ctrl+P로 바로 인쇄할 때도 문제지 화면이면 종이용 배치를 쓴다 */
+window.addEventListener('beforeprint', ()=>{
+  if(document.body.classList.contains('printing') || !worksheetVisible()) return;
+  buildPrintArea({sheet:true, answers:false, steps:false});
+  document.body.classList.add('printing');
+});
+/* 인쇄가 끝나면(미리보기를 취소해도) 화면 상태로 되돌린다 */
+window.addEventListener('afterprint', ()=>{
+  document.body.classList.remove('printing');
+  document.getElementById('printArea').innerHTML='';
+});
+document.querySelectorAll('.print-btn').forEach(b=>b.addEventListener('click', openPrintModal));
+document.getElementById('printCancelBtn').addEventListener('click', closePrintModal);
+document.getElementById('printGoBtn').addEventListener('click', runPrint);
+document.getElementById('printModal').addEventListener('click', (e)=>{ if(e.target.id==='printModal') closePrintModal(); });
 </script>
 </body>
 </html>
