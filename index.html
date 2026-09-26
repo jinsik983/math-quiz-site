@@ -745,58 +745,120 @@ function gcdSteps(a,b){
   return {steps, answer:x};
 }
 
+/* 자연수 덧셈·뺄셈은 교육과정상 4학년까지라, 5~6학년은 복습 수준(최대 여섯 자리)으로 둔다 */
 function numberRangeForGrade(grade,diff){
   const table={
     1:[[1,9],[1,20],[10,50]],
     2:[[10,50],[10,99],[100,500]],
     3:[[100,500],[100,999],[1000,5000]],
-    4:[[1000,9999],[10000,99999],[100000,999999]],
-    5:[[10000,99999],[100000,999999],[1000000,9999999]],
-    6:[[100000,999999],[1000000,9999999],[10000000,99999999]]
+    4:[[100,999],[1000,9999],[10000,99999]],
+    5:[[1000,9999],[10000,99999],[100000,999999]],
+    6:[[1000,9999],[10000,99999],[100000,999999]]
   };
   return table[grade][diff-1];
 }
 
-/* ========================= 서술형(문장제) 템플릿 ========================= */
+/* ========================= 한글 조사 처리 =========================
+   받침 유무에 따라 을/를, 이/가, 은/는, 과/와를 고른다.
+   숫자는 읽는 소리 기준: 0(영·십·백·천·만) 1(일) 3(삼) 6(육) 7(칠) 8(팔)은 받침 있음 */
+function hasBatchim(word){
+  const s=String(word);
+  if(!s) return false;
+  const ch=s[s.length-1], code=ch.charCodeAt(0);
+  if(code>=0xAC00 && code<=0xD7A3) return (code-0xAC00)%28!==0;
+  if(ch>='0' && ch<='9') return '013678'.includes(ch);
+  return false;
+}
+/* josa('사탕','을/를') → '사탕을', josa('쿠키','을/를') → '쿠키를' */
+function josa(word, pair){
+  const [withB, noB]=pair.split('/');
+  return word+(hasBatchim(word)?withB:noB);
+}
+/* 이름 뒤에 붙는 '이': 민준 → 민준이, 시우 → 시우.
+   결과가 항상 모음으로 끝나므로 뒤에는 는/가/를/네/에게를 그대로 붙이면 된다 */
+function nameRef(name){ return hasBatchim(name) ? name+'이' : name; }
+
+/* ========================= 서술형(문장제) 템플릿 =========================
+   숫자 크기에 맞는 소재만 쓰도록 템플릿마다 허용 범위를 둔다.
+   min/max: 첫 번째 수(덧셈·뺄셈은 두 수 모두), minB/maxB: 두 번째 수(곱하는 수·나누는 수)
+   예: 반 학생 수는 40명까지, 돈은 100원부터 */
 const WORD_NAMES=['민준','서연','도윤','하은','시우','지우','유준','수아','예준','다은'];
 const WORD_ITEMS=['사탕','구슬','색종이','딱지','연필','공책','붙임딱지','귤','쿠키','풍선'];
+const WORD_GOODS=['장난감','책','가방','인형','모자','필통'];
 function pick(arr){return arr[randInt(0,arr.length-1)];}
+/* 두 사람이 나오는 문장에서 같은 이름이 두 번 나오지 않게 한다 */
+function wordContext(){
+  const n1=pick(WORD_NAMES);
+  let n2=pick(WORD_NAMES);
+  while(n2===n1) n2=pick(WORD_NAMES);
+  const goods=pick(WORD_GOODS);
+  let goods2=pick(WORD_GOODS);
+  while(goods2===goods) goods2=pick(WORD_GOODS);
+  return {N1:nameRef(n1), N2:nameRef(n2), it:pick(WORD_ITEMS), goods, goods2};
+}
+/* 숫자 크기에 맞는 템플릿 중 하나를 골라 문장제를 만든다. 맞는 템플릿이 없으면 null(→ 식으로 출제) */
+function wordProblem(templates, a, b, r){
+  const fits=t=>
+    a>=(t.min||0) && a<=(t.max||Infinity) &&
+    (t.maxB!==undefined ? (b>=(t.minB||0) && b<=t.maxB)
+                        : (b>=(t.min||0) && b<=(t.max||Infinity)));
+  const fit=templates.filter(fits);
+  if(!fit.length) return null;
+  const t=pick(fit);
+  return {question:t.t(a,b,wordContext(),r), unit:t.unit||''};
+}
 
-function addWordQuestion(a,b){
-  const n1=pick(WORD_NAMES), n2=pick(WORD_NAMES), it=pick(WORD_ITEMS);
-  const templates=[
-    n1+'이는 '+it+'을 '+a+'개 가지고 있었는데, '+n2+'에게 '+b+'개를 더 받았습니다. '+n1+'이가 가진 '+it+'은 모두 몇 개일까요?',
-    '문구점에 '+it+'이 '+a+'개 있었는데, '+b+'개를 더 들여왔습니다. 문구점에 있는 '+it+'은 모두 몇 개일까요?',
-    n1+'이네 반은 '+a+'명, '+n2+'이네 반은 '+b+'명입니다. 두 반 학생은 모두 몇 명일까요?'
-  ];
-  return pick(templates);
-}
-function subWordQuestion(a,b){
-  const n1=pick(WORD_NAMES), n2=pick(WORD_NAMES), it=pick(WORD_ITEMS);
-  const templates=[
-    n1+'이는 '+it+'을 '+a+'개 가지고 있었는데, 그중 '+b+'개를 '+n2+'에게 주었습니다. '+n1+'이에게 남은 '+it+'은 몇 개일까요?',
-    '버스에 '+a+'명이 타고 있었는데, 정류장에서 '+b+'명이 내렸습니다. 버스에 남은 사람은 몇 명일까요?',
-    '농장에 있던 '+it+' '+a+'개 중 '+b+'개를 팔았습니다. 남은 '+it+'은 몇 개일까요?'
-  ];
-  return pick(templates);
-}
-function mulWordQuestion(a,b){
-  const n1=pick(WORD_NAMES), it=pick(WORD_ITEMS);
-  const templates=[
-    '한 상자에 '+it+'이 '+a+'개씩 들어 있습니다. '+b+'상자에 들어 있는 '+it+'은 모두 몇 개일까요?',
-    n1+'이는 매일 '+it+'을 '+a+'개씩 모읍니다. '+b+'일 동안 모은 '+it+'은 모두 몇 개일까요?',
-    '한 줄에 학생이 '+a+'명씩 서 있습니다. '+b+'줄에 서 있는 학생은 모두 몇 명일까요?'
-  ];
-  return pick(templates);
-}
-function divWordQuestion(a,b){
-  const n1=pick(WORD_NAMES), it=pick(WORD_ITEMS);
-  const templates=[
-    it+' '+a+'개를 '+b+'명에게 똑같이 나누어 주려고 합니다. 한 명이 몇 개씩 가지고, 남는 '+it+'은 몇 개일까요? (몫과 나머지)',
-    n1+'이는 '+it+' '+a+'개를 한 봉지에 '+b+'개씩 담으려고 합니다. 봉지는 몇 개가 되고, 남는 '+it+'은 몇 개일까요? (몫과 나머지)'
-  ];
-  return pick(templates);
-}
+/* 덧셈: a + b */
+const ADD_TEMPLATES=[
+  {max:100, t:(a,b,c)=> c.N1+'는 '+josa(c.it,'을/를')+' '+a+'개 가지고 있었는데, '+c.N2+'에게 '+b+'개를 더 받았습니다. '+c.N1+'가 가진 '+josa(c.it,'은/는')+' 모두 몇 개일까요?'},
+  {max:40, t:(a,b,c)=> c.N1+'네 반은 '+a+'명, '+c.N2+'네 반은 '+b+'명입니다. 두 반 학생은 모두 몇 명일까요?'},
+  {max:60, t:(a,b,c)=> '버스에 '+a+'명이 타고 있었는데, 정류장에서 '+b+'명이 더 탔습니다. 버스에 탄 사람은 모두 몇 명일까요?'},
+  {max:500, t:(a,b,c)=> '문구점에 '+josa(c.it,'이/가')+' '+a+'개 있었는데, '+b+'개를 더 들여왔습니다. 문구점에 있는 '+josa(c.it,'은/는')+' 모두 몇 개일까요?'},
+  {min:20, max:5000, t:(a,b,c)=> '도서관에 책이 '+a+'권 있었는데, 새 책 '+b+'권을 더 들여왔습니다. 도서관에 있는 책은 모두 몇 권일까요?'},
+  {min:20, max:5000, t:(a,b,c)=> '놀이공원에 오전에 '+a+'명, 오후에 '+b+'명이 들어왔습니다. 오늘 놀이공원에 온 사람은 모두 몇 명일까요?'},
+  {min:20, max:9999, t:(a,b,c)=> '공장에서 어제 '+josa(c.goods,'을/를')+' '+a+'개, 오늘 '+b+'개 만들었습니다. 이틀 동안 만든 '+josa(c.goods,'은/는')+' 모두 몇 개일까요?'},
+  {min:100, max:100000, unit:'원', t:(a,b,c)=> c.N1+'는 저금통에 '+a+'원이 있었는데, 용돈으로 받은 '+b+'원을 더 넣었습니다. 저금통에 있는 돈은 모두 얼마일까요?'},
+  {min:100, max:200000, unit:'원', t:(a,b,c)=> a+'원짜리 '+josa(c.goods,'과/와')+' '+b+'원짜리 '+josa(c.goods2,'을/를')+' 샀습니다. 모두 얼마를 내야 할까요?'},
+  {min:10000, unit:'원', t:(a,b,c)=> '어느 가게에서 지난달에 '+a+'원어치, 이번 달에 '+b+'원어치를 팔았습니다. 두 달 동안 판 돈은 모두 얼마일까요?'},
+  {min:1000, t:(a,b,c)=> '어느 도시에 남자가 '+a+'명, 여자가 '+b+'명 살고 있습니다. 이 도시에 사는 사람은 모두 몇 명일까요?'},
+  {min:100, t:(a,b,c)=> c.N1+'의 동영상은 조회 수가 어제까지 '+a+'회였는데, 오늘 '+b+'회 더 늘었습니다. 조회 수는 모두 몇 회일까요?'}
+];
+
+/* 뺄셈: a - b (a ≥ b) */
+const SUB_TEMPLATES=[
+  {max:100, t:(a,b,c)=> c.N1+'는 '+josa(c.it,'을/를')+' '+a+'개 가지고 있었는데, 그중 '+b+'개를 '+c.N2+'에게 주었습니다. '+c.N1+'에게 남은 '+josa(c.it,'은/는')+' 몇 개일까요?'},
+  {max:60, t:(a,b,c)=> '버스에 '+a+'명이 타고 있었는데, 정류장에서 '+b+'명이 내렸습니다. 버스에 남은 사람은 몇 명일까요?'},
+  {max:500, t:(a,b,c)=> '상자에 '+josa(c.it,'이/가')+' '+a+'개 들어 있었는데, 그중 '+b+'개를 꺼냈습니다. 상자에 남은 '+josa(c.it,'은/는')+' 몇 개일까요?'},
+  {min:20, max:5000, t:(a,b,c)=> '도서관에 책이 '+a+'권 있었는데, 오늘 '+b+'권을 빌려 갔습니다. 도서관에 남은 책은 몇 권일까요?'},
+  {min:20, max:3000, t:(a,b,c)=> '운동장에 '+a+'명이 모여 있었는데, '+b+'명이 집으로 돌아갔습니다. 운동장에 남은 사람은 몇 명일까요?'},
+  {min:20, max:9999, t:(a,b,c)=> '공장에서 '+josa(c.goods,'을/를')+' '+a+'개 만들었는데, 그중 '+b+'개가 불량품이었습니다. 불량품이 아닌 '+josa(c.goods,'은/는')+' 몇 개일까요?'},
+  {min:100, unit:'원', t:(a,b,c)=> c.N1+'는 '+a+'원을 가지고 있었는데, '+b+'원짜리 '+josa(c.goods,'을/를')+' 샀습니다. 남은 돈은 얼마일까요?'},
+  {min:1000, t:(a,b,c)=> '어느 마을의 인구는 작년에 '+a+'명이었는데, 올해는 '+b+'명입니다. 인구가 몇 명 줄었을까요?'},
+  {min:100, t:(a,b,c)=> c.N1+'의 동영상은 조회 수가 '+a+'회, '+c.N2+'의 동영상은 '+b+'회입니다. '+c.N1+'의 동영상이 몇 회 더 많을까요?'}
+];
+
+/* 곱셈: a × b (a: 한 묶음의 양, b: 묶음 수) */
+const MUL_TEMPLATES=[
+  {max:100, maxB:50, t:(a,b,c)=> '한 상자에 '+josa(c.it,'이/가')+' '+a+'개씩 들어 있습니다. '+b+'상자에 들어 있는 '+josa(c.it,'은/는')+' 모두 몇 개일까요?'},
+  {max:30, maxB:99, t:(a,b,c)=> c.N1+'는 매일 '+josa(c.it,'을/를')+' '+a+'개씩 모읍니다. '+b+'일 동안 모은 '+josa(c.it,'은/는')+' 모두 몇 개일까요?'},
+  {max:30, maxB:30, t:(a,b,c)=> '한 줄에 학생이 '+a+'명씩 '+b+'줄로 서 있습니다. 서 있는 학생은 모두 몇 명일까요?'},
+  {max:40, maxB:30, t:(a,b,c)=> '한 반에 학생이 '+a+'명씩 있습니다. '+b+'개 반의 학생은 모두 몇 명일까요?'},
+  {min:100, max:9999, maxB:99, unit:'원', t:(a,b,c)=> a+'원짜리 '+josa(c.it,'을/를')+' '+b+'개 샀습니다. 모두 얼마를 내야 할까요?'},
+  {min:10, max:120, maxB:24, unit:'km', t:(a,b,c)=> '자동차가 한 시간에 '+a+'km씩 달립니다. '+b+'시간 동안 달린 거리는 모두 몇 km일까요?'},
+  {min:10, max:999, maxB:99, t:(a,b,c)=> '공장에서 하루에 '+josa(c.goods,'을/를')+' '+a+'개씩 만듭니다. '+b+'일 동안 만든 '+josa(c.goods,'은/는')+' 모두 몇 개일까요?'},
+  {min:10, max:999, maxB:99, unit:'g', t:(a,b,c)=> '과자 한 봉지의 무게는 '+a+'g입니다. 과자 '+b+'봉지의 무게는 모두 몇 g일까요?'}
+];
+
+/* 나눗셈: n ÷ d. r(나머지)이 0이면 "남는 것"을 묻지 않는다 */
+const DIV_TEMPLATES=[
+  {max:200, maxB:20, t:(n,d,c,r)=> c.it+' '+n+'개를 '+d+'명에게 똑같이 나누어 주려고 합니다. '+(r ? '한 명이 몇 개씩 가지고, 남는 '+josa(c.it,'은/는')+' 몇 개일까요?' : '한 명이 몇 개씩 가지게 될까요?')},
+  {max:1000, maxB:50, t:(n,d,c,r)=> c.N1+'는 '+c.it+' '+n+'개를 한 봉지에 '+d+'개씩 담으려고 합니다. '+(r ? '봉지는 몇 개가 되고, 남는 '+josa(c.it,'은/는')+' 몇 개일까요?' : '봉지는 몇 개가 될까요?')},
+  {max:500, maxB:12, t:(n,d,c,r)=> '학생 '+n+'명이 한 모둠에 '+d+'명씩 모둠을 만듭니다. '+(r ? '모둠은 몇 개가 되고, 남는 학생은 몇 명일까요?' : '모둠은 몇 개가 될까요?')},
+  {max:2000, maxB:50, t:(n,d,c,r)=> '구슬 '+n+'개를 한 줄에 '+d+'개씩 꿰어 팔찌를 만듭니다. '+(r ? '팔찌는 몇 개 만들 수 있고, 남는 구슬은 몇 개일까요?' : '팔찌는 몇 개 만들 수 있을까요?')},
+  {min:50, max:3000, maxB:50, t:(n,d,c,r)=> '학생 '+n+'명이 버스 한 대에 '+d+'명씩 타고 견학을 갑니다. '+(r ? '버스는 몇 대가 꽉 차고, 남는 학생은 몇 명일까요?' : '버스는 몇 대가 필요할까요?')},
+  {min:50, max:10000, maxB:50, t:(n,d,c,r)=> '연필 '+n+'자루를 한 묶음에 '+d+'자루씩 묶으려고 합니다. '+(r ? '묶음은 몇 개가 되고, 남는 연필은 몇 자루일까요?' : '묶음은 몇 개가 될까요?')},
+  {min:100, maxB:50, t:(n,d,c,r)=> n+'원을 '+d+'명이 똑같이 나누어 가지려고 합니다. '+(r ? '한 명이 얼마씩 가지고, 남는 돈은 얼마일까요?' : '한 명이 얼마씩 가지게 될까요?')}
+];
 
 /* ========================= 문제 유형 ========================= */
 const TOPICS=[
@@ -804,18 +866,16 @@ const TOPICS=[
   const [min,max]=numberRangeForGrade(grade,diff);
   const a=randInt(min,max), b=randInt(min,max);
   const {steps,answer}=additionSteps(a,b);
-  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
-  const question = useWord ? addWordQuestion(a,b) : (a+' + '+b+' = ?');
-  return {topic:'덧셈', question, answerType:'number', correct:answer, unit:'', steps, isWord:useWord};
+  const w = (opts&&opts.word) && Math.random()<0.7 ? wordProblem(ADD_TEMPLATES,a,b) : null;
+  return {topic:'덧셈', question: w ? w.question : (a+' + '+b+' = ?'), answerType:'number', correct:answer, unit: w ? w.unit : '', steps, isWord:!!w};
 }},
 {id:'sub', label:'뺄셈', grades:[1,2,3,4,5,6], generate:(grade,diff,opts)=>{
   const [min,max]=numberRangeForGrade(grade,diff);
   let a=randInt(min,max), b=randInt(min,max);
   if(a<b){const t=a;a=b;b=t;}
   const {steps,answer}=subtractionSteps(a,b);
-  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
-  const question = useWord ? subWordQuestion(a,b) : (a+' - '+b+' = ?');
-  return {topic:'뺄셈', question, answerType:'number', correct:answer, unit:'', steps, isWord:useWord};
+  const w = (opts&&opts.word) && Math.random()<0.7 ? wordProblem(SUB_TEMPLATES,a,b) : null;
+  return {topic:'뺄셈', question: w ? w.question : (a+' - '+b+' = ?'), answerType:'number', correct:answer, unit: w ? w.unit : '', steps, isWord:!!w};
 }},
 {id:'mul', label:'곱셈', grades:[2,3,4,5,6], generate:(grade,diff,opts)=>{
   let a,b;
@@ -832,9 +892,8 @@ const TOPICS=[
     b= grade===3 ? randInt(2,9) : randInt(2, diff===3?99:20);
   }
   const {steps,answer}=multiplicationSteps(a,b);
-  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
-  const question = useWord ? mulWordQuestion(a,b) : (a+' × '+b+' = ?');
-  return {topic:'곱셈', question, answerType:'number', correct:answer, unit:'', steps, isWord:useWord};
+  const w = (opts&&opts.word) && Math.random()<0.7 ? wordProblem(MUL_TEMPLATES,a,b) : null;
+  return {topic:'곱셈', question: w ? w.question : (a+' × '+b+' = ?'), answerType:'number', correct:answer, unit: w ? w.unit : '', steps, isWord:!!w};
 }},
 {id:'div', label:'나눗셈', grades:[3,4,5,6], generate:(grade,diff,opts)=>{
   const dtable={3:[2,9],4:[2,12],5:[2,20],6:[2,50]};
@@ -848,15 +907,15 @@ const TOPICS=[
   if(allowRemainder && Math.random()<0.6) remainder=randInt(1,divisor-1);
   const dividend=divisor*quotient+remainder;
   const {steps,answer,remainder:rem}=divisionSteps(dividend,divisor);
-  const useWord = !!(opts&&opts.word) && Math.random()<0.7;
-  const question = useWord ? divWordQuestion(dividend,divisor) : (dividend+' ÷ '+divisor+' = ?  (몫과 나머지)');
-  return {topic:'나눗셈', question, answerType:'division', correct:{q:answer,r:rem}, unit:'', steps, isWord:useWord};
+  const w = (opts&&opts.word) && Math.random()<0.7 ? wordProblem(DIV_TEMPLATES,dividend,divisor,rem) : null;
+  return {topic:'나눗셈', question: w ? w.question : (dividend+' ÷ '+divisor+' = ?  (몫과 나머지)'), answerType:'division', correct:{q:answer,r:rem}, unit:'', steps, isWord:!!w};
 }},
 {id:'frac', label:'분수의 덧셈과 뺄셈', grades:[3,4,5,6], generate:(grade,diff)=>{
   if(grade<=4){
     const d=randInt(3,12);
     let n1=randInt(1,d-1), n2=randInt(1,d-1);
     let op=Math.random()<0.5?'+':'-';
+    if(op==='-' && n1===n2) op='+';   // 같은 분수끼리 빼서 0이 되는 문제는 내지 않는다
     if(op==='-' && n1<n2){const t=n1;n1=n2;n2=t;}
     const rawNum = op==='+'? n1+n2 : n1-n2;
     const [sn,sd]=simplifyFraction(rawNum,d);
@@ -869,11 +928,12 @@ const TOPICS=[
     let op=Math.random()<0.5?'+':'-';
     const L=lcmPure(d1,d2);
     let n1c=n1*(L/d1), n2c=n2*(L/d2);
+    if(op==='-' && n1c===n2c) op='+';   // 1/2 - 2/4처럼 크기가 같은 분수끼리 빼면 0이 되므로 덧셈으로 바꾼다
     if(op==='-' && n1c<n2c){ let t; t=d1;d1=d2;d2=t; t=n1;n1=n2;n2=t; t=n1c;n1c=n2c;n2c=t; }
     const rawNum= op==='+'? n1c+n2c : n1c-n2c;
     const [sn,sd]=simplifyFraction(rawNum,L);
     const steps=[
-      d1+'과 '+d2+'의 최소공배수는 '+L+'입니다. (통분)',
+      josa(d1,'과/와')+' '+d2+'의 최소공배수는 '+L+'입니다. (통분)',
       n1+'/'+d1+' = '+n1c+'/'+L+',  '+n2+'/'+d2+' = '+n2c+'/'+L,
       n1c+'/'+L+' '+op+' '+n2c+'/'+L+' = '+rawNum+'/'+L
     ];
@@ -886,6 +946,7 @@ const TOPICS=[
   const magTable={3:[10,99],4:[10,299],5:[10,999],6:[10,4999]};
   const [mmin,mmax]=magTable[grade];
   let x=randInt(mmin,mmax), y=randInt(mmin,mmax);
+  while(y===x) y=randInt(mmin,mmax);   // 같은 수끼리 빼서 0이 되지 않게
   const op=Math.random()<0.5?'+':'-';
   if(op==='-' && x<y){const t=x;x=y;y=t;}
   const {steps:intSteps, answer:intAnswer}= op==='+'? additionSteps(x,y): subtractionSteps(x,y);
@@ -906,11 +967,11 @@ const TOPICS=[
   const askGCD=Math.random()<0.5;
   if(askGCD){
     const {steps,answer}=gcdSteps(a,b);
-    return {topic:'약수와 배수', question:a+'와 '+b+'의 최대공약수를 구하세요.', answerType:'number', correct:answer, unit:'', steps};
+    return {topic:'약수와 배수', question:josa(a,'과/와')+' '+b+'의 최대공약수를 구하세요.', answerType:'number', correct:answer, unit:'', steps};
   } else {
     const g=gcdPure(a,b), l=a*b/g;
     const steps=['먼저 최대공약수를 구해요.'].concat(gcdSteps(a,b).steps).concat(['최소공배수 = ('+a+' × '+b+') ÷ 최대공약수 = '+(a*b)+' ÷ '+g+' = '+l]);
-    return {topic:'약수와 배수', question:a+'와 '+b+'의 최소공배수를 구하세요.', answerType:'number', correct:l, unit:'', steps};
+    return {topic:'약수와 배수', question:josa(a,'과/와')+' '+b+'의 최소공배수를 구하세요.', answerType:'number', correct:l, unit:'', steps};
   }
 }},
 {id:'geo', label:'도형의 둘레와 넓이', grades:[4,5,6], generate:(grade,diff)=>{
@@ -962,8 +1023,8 @@ const TOPICS=[
   const a=a2*g, b=b2*g;
   const gg=gcdPure(a,b);
   const sa=a/gg, sb=b/gg;
-  const steps=[a+'와 '+b+'의 최대공약수는 '+gg+'입니다.', a+' ÷ '+gg+' = '+sa+',  '+b+' ÷ '+gg+' = '+sb, '따라서 가장 간단한 자연수의 비는 '+sa+' : '+sb+' 입니다.'];
-  return {topic:'비와 비율', question:a+' : '+b+'를 가장 간단한 자연수의 비로 나타내세요.', answerType:'ratio', correct:{a:sa,b:sb}, unit:'', steps};
+  const steps=[josa(a,'과/와')+' '+b+'의 최대공약수는 '+gg+'입니다.', a+' ÷ '+gg+' = '+sa+',  '+b+' ÷ '+gg+' = '+sb, '따라서 가장 간단한 자연수의 비는 '+sa+' : '+sb+' 입니다.'];
+  return {topic:'비와 비율', question:josa(a+' : '+b,'을/를')+' 가장 간단한 자연수의 비로 나타내세요.', answerType:'ratio', correct:{a:sa,b:sb}, unit:'', steps};
 }}
 ];
 
